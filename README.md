@@ -45,6 +45,11 @@ npm run deploy   # 初回は wrangler login が必要
 （選択はブラウザに保存）。配色は `public/style.css` 冒頭のテーマ別の変数、飾りの文言は `public/app.js` の `THEMES` で決まる。
 隠しテーマの飾りの文言はその国の言語で固定で、診断結果の表示だけが Lang の設定に従う。
 
+日本風と中国風には、そのテーマのときだけ出る「やかましい」飾りがある（意味のないバナー、星のマウス追従、
+当選ポップアップ、偽の利用者通知など）。HTMLでは `jp-only` / `cn-only` クラスの要素、CSSは `public/style.css` 末尾、
+動きは `public/app.js` の `jpEffects` / `cnEffects`。押せるものは `data-joke` つきで、押すと「飾りです」と出るだけ。
+他のテーマでは表示も動作もしない。
+
 ## 地図
 
 - IPの位置：Leaflet（`public/vendor/leaflet/` に同梱）と OpenStreetMap のタイルで表示する。出典表記は「© OpenStreetMap contributors」のみ。

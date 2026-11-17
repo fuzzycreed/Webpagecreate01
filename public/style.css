@@ -800,7 +800,8 @@ a:hover { color: var(--link-hover-fg); background: var(--link-hover-bg); }
 }
 @media (min-width: 960px) {
   .layout { display: grid; grid-template-columns: 208px minmax(0, 1fr); }
-  .tabs { flex-direction: column; flex-wrap: nowrap; justify-content: flex-start; align-items: stretch; gap: 6px; padding: 16px 10px; border-bottom: 0; border-right: var(--tabs-rule); }
+  .side { background: var(--tabs-bg); border-right: var(--tabs-rule); min-width: 0; }
+  .tabs { flex-direction: column; flex-wrap: nowrap; justify-content: flex-start; align-items: stretch; gap: 6px; padding: 16px 10px; border-bottom: 0; }
   .tabs button { text-align: left; padding: 7px 10px; font-size: 14px; }
   main { padding: 18px 24px 32px; }
   .cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 22px; align-items: start; }
@@ -926,4 +927,112 @@ pre.raw { margin: 0; padding: 8px 10px; font: 13px/1.5 var(--mono); white-space:
 @media (prefers-reduced-motion: reduce) {
   .marquee span { animation: none; padding-left: 8px; }
   .peek .blink, .peek, .btn.primary, .cn-float button { animation: none !important; }
+}
+
+
+/* =====================================================================
+   日本風・中国風だけの「やかましい」飾り。
+   jp-only / cn-only の要素は、それぞれのテーマのときだけ表示される。
+   ===================================================================== */
+.jp-only, .side-extra { display: none; }
+:root[data-theme="jp"] .jp-only { display: block; }
+:root[data-theme="jp"] .jp-only[hidden] { display: none; }
+@media (max-width: 959px) { :root[data-theme] .side-extra { display: none; } }
+
+/* ---------- 日本風 ---------- */
+:root[data-theme="jp"] body { animation: jp-sky 90s linear infinite; }
+@keyframes jp-sky { to { background-position: 400px 800px; } }
+:root[data-theme="jp"] .page { border-image: repeating-linear-gradient(45deg, #ff0000, #ffff00 10px, #00ff00 20px, #00ffff 30px, #ff00ff 40px, #ff0000 50px) 4; }
+
+.jp-ads { gap: 4px; padding: 6px; background: #000000; text-align: center; overflow: hidden; white-space: nowrap; }
+:root[data-theme="jp"] .jp-ads { display: flex; justify-content: center; }
+.jp-ad { flex: 0 1 300px; min-width: 0; height: 44px; padding: 2px 6px; cursor: pointer; white-space: normal; font: bold 12px/1.25 "MS PGothic", sans-serif; border: 2px outset #ffffff; }
+.jp-ad b { display: inline-block; padding: 0 4px; animation: blink 1s steps(2, start) infinite; }
+.jp-ad.a1 { background: linear-gradient(#ffff66, #ff9900); color: #cc0000; }
+.jp-ad.a1 b { background: #cc0000; color: #ffff00; }
+.jp-ad.a2 { background: linear-gradient(90deg, #ff66cc, #9933ff); color: #ffffff; }
+.jp-ad.a2 b { color: #ffff00; }
+.jp-ad.a3 { background: repeating-linear-gradient(45deg, #ff0000 0 10px, #ffffff 10px 20px); color: #000080; text-shadow: 0 0 2px #ffffff, 0 0 2px #ffffff, 0 0 2px #ffffff; }
+.jp-ad.a3 b { background: #000080; color: #ffffff; text-shadow: none; }
+@media (max-width: 640px) { .jp-ad.a2, .jp-ad.a3 { display: none; } }
+
+.jp-welcome { margin: 0; padding: 3px 6px; text-align: center; font-weight: bold; font-size: 13px; background: #ffffcc; overflow: hidden; white-space: nowrap; text-overflow: clip; animation: jp-rainbow 2.4s linear infinite; }
+@keyframes jp-rainbow { 0% { color: #ff0000; } 20% { color: #ff9900; } 40% { color: #009900; } 60% { color: #0066ff; } 80% { color: #cc00cc; } 100% { color: #ff0000; } }
+
+:root[data-theme="jp"] .tabs [data-tab="ports"]::after,
+:root[data-theme="jp"] .tabs [data-tab="http"]::after,
+:root[data-theme="jp"] .tabs [data-tab="certs"]::after { content: " NEW!"; color: #ff0000; font: bold 10px Arial, sans-serif; animation: blink .8s steps(2, start) infinite; }
+:root[data-theme="jp"] h1 { animation: jp-rainbow 6s linear infinite; }
+
+:root[data-theme="jp"] .side-extra { padding: 4px 10px 14px; font-size: 12px; line-height: 1.5; }
+.jp-box { margin: 0 0 8px; padding: 5px 6px; background: #ffffff; border: 2px inset #ffffff; }
+.jp-box b { color: #000080; }
+.jp-num { display: inline-block; padding: 0 3px; background: #000000; color: #33ff66; font: bold 12px "MS Gothic", monospace; }
+.jp-new { color: #ff0000; font: bold 10px Arial, sans-serif; animation: blink .8s steps(2, start) infinite; }
+.jp-rank { display: block; width: 100%; margin: 0 0 8px; padding: 6px 4px; cursor: pointer; font: bold 12px/1.4 "MS PGothic", sans-serif; color: #ffff00; background: linear-gradient(#ff3399, #990066); border: 3px outset #ff99cc; animation: jp-wobble 1.6s ease-in-out infinite; }
+@keyframes jp-wobble { 50% { transform: rotate(-2deg) scale(1.03); } }
+
+.jp-badges { display: flex !important; flex-wrap: wrap; justify-content: center; gap: 4px; }
+:root:not([data-theme="jp"]) .jp-badges { display: none !important; }
+.jp-badges span { width: 88px; height: 31px; font: bold 11px/27px "MS PGothic", sans-serif; text-align: center; color: #ffffff; border: 2px outset #cccccc; background: #000080; }
+.jp-badges span:nth-child(3n+1) { background: linear-gradient(#ff6600, #cc0000); color: #ffff00; }
+.jp-badges span:nth-child(3n+2) { background: linear-gradient(#33cc33, #006600); }
+.jp-badges span:nth-child(4n) { background: #000000; color: #33ff66; animation: blink 1.4s steps(2, start) infinite; }
+
+.jp-top { position: fixed; right: 12px; bottom: 16px; z-index: 20; width: 46px; height: 46px; cursor: pointer; font: bold 11px/1.2 Arial, sans-serif; color: #ffff00; background: #ff0000; border: 3px outset #ff9999; }
+.jp-trail { position: fixed; inset: 0; z-index: 40; pointer-events: none; overflow: hidden; }
+.jp-trail span { position: absolute; font-size: 16px; line-height: 1; pointer-events: none; animation: jp-star .8s ease-out forwards; }
+@keyframes jp-star { to { transform: translateY(26px) rotate(180deg) scale(.3); opacity: 0; } }
+
+/* ---------- 中国風 ---------- */
+.cn-topbar { justify-content: center; align-items: center; gap: 10px; flex-wrap: wrap; max-width: 1240px; margin: 0 auto 8px; padding: 6px 10px; border-radius: 10px; font: 13px/1.4 "PingFang SC", "Microsoft YaHei", sans-serif; color: #ffffff; background: rgba(0, 0, 0, .35); }
+.cn-topbar button { border: 0; border-radius: 999px; padding: 3px 14px; cursor: pointer; font: bold 12px "PingFang SC", "Microsoft YaHei", sans-serif; color: #ff2d2d; background: #fff7d6; animation: cn-pulse 1.3s ease-in-out infinite; }
+
+:root[data-theme="cn"] .title-row { overflow: hidden; }
+:root[data-theme="cn"] .title-row::after { content: ""; position: absolute; top: 0; bottom: 0; left: -40%; width: 30%; background: linear-gradient(100deg, transparent, rgba(255, 255, 255, .45), transparent); animation: cn-shine 3.2s ease-in-out infinite; pointer-events: none; }
+@keyframes cn-shine { 60%, 100% { left: 120%; } }
+:root[data-theme="cn"] .brand::after { content: "官方"; display: inline-block; margin-left: 8px; padding: 1px 6px; vertical-align: middle; font: bold 12px "PingFang SC", "Microsoft YaHei", sans-serif; letter-spacing: 0; color: #d4380d; -webkit-text-fill-color: #d4380d; background: #fff1a8; border-radius: 4px; }
+:root[data-theme="cn"] .tabs [data-tab="lookup"]::after, :root[data-theme="cn"] .tabs [data-tab="dns"]::after { content: "热"; }
+:root[data-theme="cn"] .tabs [data-tab="ports"]::after, :root[data-theme="cn"] .tabs [data-tab="certs"]::after { content: "新"; }
+:root[data-theme="cn"] .tabs [data-tab="http"]::after { content: "荐"; }
+:root[data-theme="cn"] .tabs button::after { display: inline-block; margin-left: 5px; padding: 0 4px; border-radius: 4px 4px 4px 0; font: bold 10px/14px "PingFang SC", "Microsoft YaHei", sans-serif; color: #ffffff; background: #ff2d2d; animation: cn-bounce 1.4s ease-in-out infinite; }
+:root[data-theme="cn"] .tabs button:not([data-tab="lookup"]):not([data-tab="dns"]):not([data-tab="ports"]):not([data-tab="certs"]):not([data-tab="http"])::after { content: none; }
+
+:root[data-theme="cn"] .side-extra.cn-only { display: block; padding: 4px 10px 14px; font: 12px/1.5 "PingFang SC", "Microsoft YaHei", sans-serif; }
+@media (max-width: 959px) { :root[data-theme="cn"] .side-extra.cn-only { display: none; } }
+.cn-hot { padding: 8px; border-radius: 10px; background: linear-gradient(160deg, #fff7e6, #fff1f0); border: 1px solid #ffd591; }
+.cn-hot b { display: block; margin-bottom: 4px; color: #d4380d; }
+.cn-hot button { display: block; width: 100%; margin-top: 4px; padding: 4px 6px; text-align: left; cursor: pointer; font: inherit; color: #333333; background: #ffffff; border: 0; border-radius: 6px; }
+.cn-hot button i { float: right; margin-left: 4px; padding: 0 4px; font-style: normal; font-weight: bold; font-size: 10px; line-height: 15px; color: #ffffff; background: #ff2d2d; border-radius: 4px; }
+.cn-qr { margin-top: 10px; padding: 8px; text-align: center; color: #8c8c8c; border: 1px dashed #ffa39e; border-radius: 10px; }
+.cn-qr .qr { width: 84px; height: 84px; margin: 0 auto 6px; border: 4px solid #ffffff; outline: 1px solid #dddddd;
+  background: conic-gradient(#000000 25%, #ffffff 0 50%, #000000 0 75%, #ffffff 0) 0 0 / 12px 12px, #ffffff; }
+
+.cn-couplet { position: fixed; top: 50%; transform: translateY(-50%); z-index: 18; width: 54px; padding: 12px 0; border: 0; cursor: pointer; border-radius: 10px; font: 900 20px/1.35 "PingFang SC", "Microsoft YaHei", sans-serif; color: #fff7d6; background: linear-gradient(180deg, #ff2d2d, #c40000); box-shadow: 0 6px 16px rgba(0, 0, 0, .3), inset 0 0 0 2px #ffd666; animation: cn-sway 2.4s ease-in-out infinite; }
+:root[data-theme="cn"] .cn-couplet { display: block; }
+.cn-couplet.left { left: max(8px, calc(50% - 700px)); }
+.cn-couplet.right { right: max(8px, calc(50% - 700px)); animation-delay: -1.2s; }
+@keyframes cn-sway { 50% { transform: translateY(-50%) rotate(2deg) scale(1.04); } }
+@media (max-width: 1399px) { :root[data-theme="cn"] .cn-couplet { display: none; } }
+
+.cn-feed { position: fixed; left: 12px; bottom: 60px; z-index: 21; max-width: min(320px, 80vw); padding: 7px 12px; border-radius: 999px; font: 12px/1.4 "PingFang SC", "Microsoft YaHei", sans-serif; color: #ffffff; background: rgba(0, 0, 0, .72); animation: cn-feed-in .4s ease-out; }
+@keyframes cn-feed-in { from { transform: translateY(12px); opacity: 0; } }
+
+.cn-modal { position: fixed; inset: 0; z-index: 50; justify-content: center; align-items: center; padding: 16px; background: rgba(0, 0, 0, .55); }
+.cn-modal-box { position: relative; width: min(320px, 100%); padding: 22px 18px 16px; text-align: center; border-radius: 18px; font: 14px/1.5 "PingFang SC", "Microsoft YaHei", sans-serif; color: #7a2e00; background: linear-gradient(180deg, #ff4d2d 0, #ff8a1f 34%, #fff7e6 34%); box-shadow: 0 16px 40px rgba(0, 0, 0, .4); animation: cn-pop .35s cubic-bezier(.2, 1.6, .4, 1); }
+@keyframes cn-pop { from { transform: scale(.6); opacity: 0; } }
+.cn-modal-box p { margin: 6px 0; }
+.cn-modal-title { font: 900 26px/1.3 "PingFang SC", "Microsoft YaHei", sans-serif; color: #fff7d6; text-shadow: 0 2px 0 rgba(150, 0, 0, .5); margin-bottom: 26px !important; }
+.cn-count { color: #cf1322; font-weight: bold; }
+.cn-count span { display: inline-block; padding: 0 6px; border-radius: 4px; color: #ffffff; background: #cf1322; font-family: Menlo, Consolas, monospace; }
+.cn-modal-btn { display: block; width: 100%; margin: 12px 0 6px; padding: 10px; border: 0; border-radius: 999px; cursor: pointer; font: 900 17px "PingFang SC", "Microsoft YaHei", sans-serif; color: #ffffff; background: linear-gradient(120deg, #ff2d2d, #ff7a00); box-shadow: 0 6px 14px rgba(255, 77, 45, .5); animation: cn-pulse 1.2s ease-in-out infinite; }
+.cn-modal-x { position: absolute; top: 8px; right: 10px; width: 26px; height: 26px; border: 0; border-radius: 50%; cursor: pointer; font-size: 16px; line-height: 1; color: #ffffff; background: rgba(0, 0, 0, .28); }
+.cn-small { font-size: 11px; color: #8c8c8c; }
+.cn-float button::after { content: "99+"; position: absolute; top: -4px; right: -6px; padding: 0 4px; border-radius: 999px; font: bold 9px/14px Arial, sans-serif; color: #ffffff; background: #ff0000; border: 1px solid #ffffff; }
+.cn-float button { position: relative; }
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-theme="jp"] body, :root[data-theme="jp"] h1, .jp-welcome, .jp-ad b, .jp-new, .jp-rank, .jp-badges span,
+  :root[data-theme="cn"] .title-row::after, :root[data-theme="cn"] .tabs button::after, .cn-topbar button, .cn-couplet, .cn-modal-box, .cn-modal-btn, .cn-feed { animation: none !important; }
+  .jp-trail { display: none !important; }
 }

@@ -1284,6 +1284,110 @@ const THEMES = {
   },
 };
 
+// ---------- 日本風・中国風だけの動く飾り ----------
+// テーマを切り替えるたびに、前のテーマの飾り（タイマーやマウスの追跡）を止めてから新しいものを始める
+
+let stopEffects = () => {};
+const calmMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+let effectsFor = null;
+function themeEffects(name) {
+  if (name === effectsFor) return; // 同じテーマの再適用（IPが分かったときなど）では、動いている飾りをやり直さない
+  effectsFor = name;
+  stopEffects();
+  stopEffects = () => {};
+  if (name === 'jp') stopEffects = jpEffects();
+  if (name === 'cn') stopEffects = cnEffects();
+}
+
+// 日本風：マウスを追いかける星と、TOPへ戻るボタン
+function jpEffects() {
+  const layer = $('#jp-trail');
+  const stars = ['★', '☆', '✦', '✧'];
+  const colors = ['#ffff00', '#ff66cc', '#66ffff', '#ffffff', '#99ff66'];
+  let last = 0;
+  const onMove = (e) => {
+    if (e.pointerType === 'touch' || calmMotion() || e.timeStamp - last < 55) return;
+    last = e.timeStamp;
+    const star = el('span', { style: `left:${e.clientX + 6}px;top:${e.clientY + 8}px;color:${colors[Math.floor(Math.random() * colors.length)]}` }, stars[Math.floor(Math.random() * stars.length)]);
+    layer.append(star);
+    setTimeout(() => star.remove(), 800);
+  };
+  const toTop = () => scrollTo({ top: 0, behavior: calmMotion() ? 'auto' : 'smooth' });
+  addEventListener('pointermove', onMove);
+  $('#jp-top').addEventListener('click', toTop);
+  return () => {
+    removeEventListener('pointermove', onMove);
+    $('#jp-top').removeEventListener('click', toTop);
+    layer.replaceChildren();
+  };
+}
+
+// 中国風：当選ポップアップ（1回の訪問につき1度だけ）、カウントダウン、偽の「利用者の声」
+function cnEffects() {
+  const modal = $('#cn-modal');
+  const feed = $('#cn-feed');
+  const timers = [];
+  const closeModal = () => (modal.hidden = true);
+  const claim = () => {
+    closeModal();
+    toast('开玩笑的，没有礼包 :)');
+  };
+  const onBackdrop = (e) => e.target === modal && closeModal();
+  const onKey = (e) => e.key === 'Escape' && closeModal();
+  $('#cn-modal-x').addEventListener('click', closeModal);
+  $('#cn-modal-btn').addEventListener('click', claim);
+  modal.addEventListener('click', onBackdrop);
+  addEventListener('keydown', onKey);
+
+  let shown = false;
+  try {
+    shown = sessionStorage.getItem('netcheck-cn-modal') === '1';
+  } catch {}
+  if (!shown) {
+    timers.push(
+      setTimeout(() => {
+        modal.hidden = false;
+        try {
+          sessionStorage.setItem('netcheck-cn-modal', '1');
+        } catch {}
+      }, 1200),
+    );
+  }
+
+  // 「限时」のカウントダウン。0になったら何事もなかったように最初へ戻る
+  let left = 599;
+  timers.push(
+    setInterval(() => {
+      left = left > 0 ? left - 1 : 599;
+      $('#cn-countdown').textContent = `${String(Math.floor(left / 60)).padStart(2, '0')}:${String(left % 60).padStart(2, '0')}`;
+    }, 1000),
+  );
+
+  const FEED = ['刚刚领取了 88 元红包', '刚刚升级了 VIP 会员', '刚刚查询了自己的 IP', '刚刚完成了端口检测', '刚刚抽中了一等奖'];
+  const PREFIX = ['138', '186', '159', '177', '135', '188'];
+  const say = () => {
+    const phone = `${PREFIX[Math.floor(Math.random() * PREFIX.length)]}****${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`;
+    feed.textContent = `🔔 用户 ${phone} ${FEED[Math.floor(Math.random() * FEED.length)]}（假的）`;
+    feed.hidden = false;
+    timers.push(setTimeout(() => (feed.hidden = true), 3600));
+  };
+  timers.push(setTimeout(say, 3500), setInterval(say, 7000));
+
+  return () => {
+    timers.forEach((id) => {
+      clearTimeout(id);
+      clearInterval(id);
+    });
+    $('#cn-modal-x').removeEventListener('click', closeModal);
+    $('#cn-modal-btn').removeEventListener('click', claim);
+    modal.removeEventListener('click', onBackdrop);
+    removeEventListener('keydown', onKey);
+    modal.hidden = true;
+    feed.hidden = true;
+  };
+}
+
 let peekInfo = null; // 警告バナーに出す、訪問者自身のIPと場所
 
 function applyTheme(name) {
@@ -1296,6 +1400,7 @@ function applyTheme(name) {
   $('#peek-text').textContent = peekInfo && theme.peek ? theme.peek(peekInfo.ip, peekInfo.detail) : '';
   $('#peek').hidden = !(peekInfo && theme.peek);
   store.set('netcheck-theme', name);
+  themeEffects(name);
 }
 
 // 見えている情報をそのまま出すだけで、保存はしない
@@ -1345,7 +1450,7 @@ function toast(message) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => (box.hidden = true), 2200);
 }
-for (const btn of document.querySelectorAll('[data-joke]')) btn.addEventListener('click', () => toast('开玩笑的，这里什么都没有 :)'));
+for (const btn of document.querySelectorAll('[data-joke]')) btn.addEventListener('click', () => toast(btn.dataset.joke || '开玩笑的，这里什么都没有 :)'));
 $('#cn-bar-close').addEventListener('click', () => ($('#cn-bar').hidden = true));
 
 // ---------- タブ切り替え ----------
