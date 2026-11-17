@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NetCheck — 接続・ブラウザ・DNS診断</title>
+<meta name="description" content="IPアドレス、ブラウザ情報、フィンガープリント、WebRTC漏れ、DNS伝播をまとめて確認できるツール">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="top">
+  <div class="wrap top-inner">
+    <a class="brand" href="#ip">NetCheck</a>
+    <nav class="tabs" role="tablist" aria-label="診断ツール">
+      <button role="tab" data-tab="ip">IP・接続</button>
+      <button role="tab" data-tab="browser">ブラウザ</button>
+      <button role="tab" data-tab="fp">フィンガープリント</button>
+      <button role="tab" data-tab="webrtc">WebRTC</button>
+      <button role="tab" data-tab="dns">DNS伝播</button>
+    </nav>
+    <select class="tab-select" aria-label="診断ツールを選ぶ">
+      <option value="ip">IP・接続</option>
+      <option value="browser">ブラウザ</option>
+      <option value="fp">フィンガープリント</option>
+      <option value="webrtc">WebRTC</option>
+      <option value="dns">DNS伝播</option>
+    </select>
+  </div>
+</header>
+
+<main class="wrap">
+  <section data-panel="ip" hidden>
+    <h1>IP・接続情報</h1>
+    <p class="lead">このサイトのサーバーから見えている、あなたの接続の情報です。</p>
+    <div id="ip-hero" class="hero"></div>
+    <div id="ip-body"></div>
+  </section>
+
+  <section data-panel="browser" hidden>
+    <h1>ブラウザ情報</h1>
+    <p class="lead">JavaScriptからサイト側が読み取れる、ブラウザと端末の情報です。</p>
+    <div id="browser-body"></div>
+  </section>
+
+  <section data-panel="fp" hidden>
+    <h1>フィンガープリント</h1>
+    <p class="lead">Cookieを使わずに端末を見分ける手がかりになる値です。計算はすべてブラウザ内で行い、どこにも送信しません。</p>
+    <div id="fp-hero" class="hero"></div>
+    <div id="fp-body"></div>
+  </section>
+
+  <section data-panel="webrtc" hidden>
+    <h1>WebRTC漏れテスト</h1>
+    <p class="lead">WebRTC経由で見えるIPアドレスを調べます。VPN利用中に、ここへVPNではない本来のIPが出ていたら漏れています。</p>
+    <p><button id="webrtc-run" class="btn">もう一度テストする</button></p>
+    <div id="webrtc-body"></div>
+  </section>
+
+  <section data-panel="dns" hidden>
+    <h1>DNS伝播チェック</h1>
+    <p class="lead">複数の公開DNSと、地域ごとの問い合わせ結果を並べて、DNSの変更が行き渡ったかを確認します。</p>
+    <form id="dns-form" class="dns-form">
+      <input id="dns-name" type="text" placeholder="example.com" autocomplete="off" autocapitalize="off" spellcheck="false" required aria-label="ドメイン名">
+      <select id="dns-type" aria-label="レコードタイプ">
+        <option>A</option><option>AAAA</option><option>CNAME</option><option>MX</option>
+        <option>NS</option><option>TXT</option><option>SOA</option><option>CAA</option>
+        <option>SRV</option><option>PTR</option>
+      </select>
+      <button class="btn primary" type="submit">調べる</button>
+      <details class="dns-adv">
+        <summary>地域を追加で指定する</summary>
+        <label>クライアントのサブネット（IPv4）
+          <input id="dns-ecs" type="text" placeholder="203.0.113.0/24" autocomplete="off" inputmode="decimal">
+        </label>
+      </details>
+    </form>
+    <div id="dns-body"></div>
+  </section>
+</main>
+
+<footer class="wrap foot">
+  <p>IP・接続情報とDNSの問い合わせだけがサーバーを経由します。それ以外はブラウザ内で完結します。</p>
+</footer>
+
+<script src="/app.js" type="module"></script>
+</body>
+</html>

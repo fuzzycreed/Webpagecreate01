@@ -1,0 +1,7 @@
+{
+  "name": "netcheck",
+  "main": "src/index.js",
+  "compatibility_date": "2026-06-01",
+  // public/ の静的ファイルを配信し、該当ファイルが無いパス（/api/*）だけ Worker が処理する
+  "assets": { "directory": "./public" }
+}
