@@ -1245,6 +1245,43 @@ const THEMES = {
     bestViewed: '沪ICP备00000000号（假的）｜ 7×24小时在线客服（没有客服）',
     copyright: '© 2026 NetCheck 版权所有',
   },
+  it: {
+    marquee: '★ Benvenuti su NetCheck! ★ Il tuo indirizzo IP, il browser, la risoluzione dello schermo e perfino i font: qui si vede tutto ★ Aggiungi il sito ai preferiti! ★ Dillo anche agli amici! ★',
+    tagline: '~ Scopri cosa sa di te Internet ~',
+    peekLabel: 'ATTENZIONE!',
+    peek: (ip, detail) => `Il tuo indirizzo IP ${ip}${detail ? ` (${detail})` : ''} è visibile a questo sito!!!`,
+    counterPre: 'Hai visitato questa pagina',
+    counterPost: 'volte',
+    kiriban: '★ Complimenti! Hai beccato un numero fortunato! ★',
+    linkFree: 'Scambio link? Prendi il nostro bottone!',
+    bestViewed: 'Sito ottimizzato per Internet Explorer 5.5 a 800×600 (si scherza) :: Fatto con il Blocco note',
+    copyright: 'Copyright © 2026 NetCheck. Tutti i diritti riservati.',
+  },
+  de: {
+    marquee: '+++ Herzlich willkommen bei NetCheck! +++ Ihre IP-Adresse, Ihr Browser, Ihre Bildschirmauflösung und sogar Ihre Schriftarten – hier ist alles sichtbar +++ Bitte tragen Sie sich ins Gästebuch ein (gibt es nicht) +++',
+    tagline: '~ Was das Internet über Sie weiß ~',
+    peekLabel: 'ACHTUNG!',
+    peek: (ip, detail) => `Ihre IP-Adresse ${ip}${detail ? ` (${detail})` : ''} ist für diese Seite sichtbar!!!`,
+    counterPre: 'Sie haben diese Seite schon',
+    counterPost: 'Mal besucht',
+    kiriban: '★ Glückwunsch! Sie haben eine Schnapszahl erwischt! ★',
+    linkFree: 'Linktausch erwünscht – nehmen Sie unseren Button!',
+    bestViewed: 'Optimiert für Internet Explorer 5.5 bei 800×600 (kleiner Scherz) | Impressum (gibt es nicht)',
+    copyright: 'Copyright © 2026 NetCheck. Alle Rechte vorbehalten.',
+  },
+  // イングランド：テレビの文字放送（Ceefax / Teletext）風。黒地に原色の文字
+  gb: {
+    marquee: '*** WELCOME TO NETCHECK *** YOUR IP ADDRESS, BROWSER, SCREEN SIZE AND EVEN YOUR FONTS ARE ALL ON SHOW *** HEADLINES 101 *** WEATHER 401 *** FOOTBALL 302 (NOT REALLY) ***',
+    tagline: 'P100 · See what the internet knows about you',
+    peekLabel: 'NEWSFLASH',
+    peek: (ip, detail) => `Your IP address ${ip}${detail ? ` (${detail})` : ''} is visible to this website!`,
+    counterPre: 'You have visited this page',
+    counterPost: 'times',
+    kiriban: '*** Congratulations! A lucky number! ***',
+    linkFree: 'Fancy a link swap? Use our button',
+    bestViewed: 'Best viewed on a 14-inch telly, or Internet Explorer 5.5 at 800×600 (only joking)',
+    copyright: 'Copyright © 2026 NetCheck. All rights reserved.',
+  },
 };
 
 let peekInfo = null; // 警告バナーに出す、訪問者自身のIPと場所

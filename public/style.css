@@ -1,5 +1,5 @@
 /* テーマは <html data-theme="..."> で切り替える。
-   mono = 白と灰色のブロック模様（標準）。jp / us / ru / cn = 各国の「昔の怪しいサイト」風（隠しテーマ）。
+   mono = 白と灰色のブロック模様（標準）。jp / us / ru / cn / it / de / gb = 各国の「怪しいサイト」風（隠しテーマ）。
    色や書体はすべて下の変数で決まり、構造のCSSは共通。 */
 
 /* ---------- 標準：白と灰色のブロック模様（目にやさしい低コントラスト） ---------- */
@@ -8,29 +8,30 @@
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "MS Gothic", monospace;
   --radius: 0px;
   --pill: 0px;
-  --bg-color: #ecece9;
-  /* 大きい4色のブロックの上に、小さい薄いブロックを重ねる */
+  --bg-color: #f0f0ee;
+  /* 細かいブロック模様。色の差はごくわずかにして、目に刺さらないようにする */
   --bg-image:
-    conic-gradient(from 90deg at 50% 50%, rgba(0, 0, 0, .03) 25%, transparent 0 50%, rgba(255, 255, 255, .45) 0 75%, transparent 0),
-    conic-gradient(from 90deg at 50% 50%, #e2e2df 25%, #f1f1ef 0 50%, #dadad6 0 75%, #eaeae7 0);
-  --bg-size: 40px 40px, 120px 120px;
+    conic-gradient(from 90deg at 50% 50%, rgba(0, 0, 0, .012) 25%, transparent 0 50%, rgba(255, 255, 255, .35) 0 75%, transparent 0),
+    conic-gradient(from 90deg at 50% 50%, #eeeeeb 25%, #f2f2f0 0 50%, #ececea 0 75%, #f0f0ee 0);
+  --bg-size: 8px 8px, 24px 24px;
   --paper: #ffffff;
-  --text: #2b2b2b;
-  --muted: #6b6b6b;
-  --line: #cfcfcb;
-  --row-a: #f4f4f2;
+  --text: #333333;
+  --muted: #707070;
+  --line: #dcdcd8;
+  --row-a: #f7f7f5;
   --row-b: #ffffff;
-  --page-border: 1px solid #c4c4c0;
-  --page-shadow: 6px 6px 0 #d2d2ce;
+  --card-bg: #ffffff;
+  --page-border: 1px solid #d8d8d4;
+  --page-shadow: 3px 3px 0 #e4e4e1;
 
-  --title-bg: #e6e6e3 conic-gradient(from 90deg at 50% 50%, #dededa 25%, #ececea 0 50%, #d6d6d2 0 75%, #e6e6e3 0) 0 0 / 56px 56px;
+  --title-bg: #ededea conic-gradient(from 90deg at 50% 50%, #eaeae7 25%, #f0f0ee 0 50%, #e8e8e5 0 75%, #ededea 0) 0 0 / 16px 16px;
   --brand-font: 800 32px/1.1 "Helvetica Neue", Arial, sans-serif;
   --brand-style: normal;
   --brand-transform: uppercase;
   --brand-spacing: 6px;
-  --brand-fill: linear-gradient(#3a3a3a, #3a3a3a);
+  --brand-fill: linear-gradient(#4a4a4a, #4a4a4a);
   --brand-shadow: none;
-  --tagline: #555555;
+  --tagline: #666666;
   --marquee-bg: #e6e6e3;
   --marquee-fg: #2b2b2b;
   --peek-bg: #f4f4f2;
@@ -39,70 +40,70 @@
   --peek-border: #cfcfcb;
 
   --tabs-bg: #ffffff;
-  --tabs-rule: 1px solid #cfcfcb;
-  --tab-bg: #f4f4f2;
-  --tab-fg: #333333;
-  --tab-border: 1px solid #cfcfcb;
-  --tab-on-bg: #5a5a5a;
+  --tabs-rule: 1px solid #dcdcd8;
+  --tab-bg: #f7f7f5;
+  --tab-fg: #444444;
+  --tab-border: 1px solid #dcdcd8;
+  --tab-on-bg: #6e6e6e;
   --tab-on-fg: #ffffff;
-  --tab-on-border: 1px solid #5a5a5a;
+  --tab-on-border: 1px solid #6e6e6e;
   --tab-on-mark: "";
   --tab-mark-color: #ffffff;
 
-  --stripe: linear-gradient(90deg, #c9c9c5 0 25%, #e3e3e0 0 50%, #b9b9b4 0 75%, #efefec 0) 0 0 / 64px 100%;
-  --stripe-h: 6px;
+  --stripe: linear-gradient(90deg, #dededb 0 25%, #e9e9e6 0 50%, #d8d8d4 0 75%, #eeeeeb 0) 0 0 / 32px 100%;
+  --stripe-h: 4px;
 
-  --h1: #2b2b2b;
+  --h1: #333333;
   --h1-mark: "■ ";
-  --h1-mark-color: #8a8a86;
-  --h1-rule: 2px solid #cfcfcb;
+  --h1-mark-color: #a3a39f;
+  --h1-rule: 2px solid #dcdcd8;
   --h2: #444444;
   --h2-mark: "▪ ";
   --h2-mark-color: #8a8a86;
-  --link: #2b2b2b;
-  --link-visited: #555555;
+  --link: #333333;
+  --link-visited: #5e5e5e;
   --link-hover-fg: #ffffff;
-  --link-hover-bg: #5a5a5a;
+  --link-hover-bg: #6e6e6e;
 
-  --btn-bg: #5a5a5a;
+  --btn-bg: #6e6e6e;
   --btn-fg: #ffffff;
-  --btn-border: 1px solid #5a5a5a;
-  --input-border: 1px solid #b9b9b4;
+  --btn-border: 1px solid #6e6e6e;
+  --input-border: 1px solid #c8c8c4;
 
-  --stat-bg: #f1f1ef;
-  --stat-fg: #2b2b2b;
-  --stat-label: #777777;
-  --stat-sub: #555555;
-  --stat-border: 1px solid #cfcfcb;
+  --stat-bg: #f5f5f3;
+  --stat-fg: #333333;
+  --stat-label: #808080;
+  --stat-sub: #5e5e5e;
+  --stat-border: 1px solid #dcdcd8;
   --stat-glow: none;
   --stat-prefix: "";
-  --thead-bg: #e4e4e1;
-  --thead-fg: #2b2b2b;
+  --thead-bg: #ebebe8;
+  --thead-fg: #333333;
 
-  --ok: #3d3d3d;
+  --ok: #4a4a4a;
   --ok-soft: #ffffff;
-  --warn: #ffffff;
-  --warn-soft: #6b6b6b;
+  --warn: #444444;
+  --warn-soft: #e9e9e6;
   --bad: #ffffff;
-  --bad-soft: #3d3d3d;
-  --info: #3d3d3d;
-  --info-soft: #ececea;
+  --bad-soft: #777777;
+  --info: #4a4a4a;
+  --info-soft: #f0f0ee;
   --alert: currentColor;
 
-  --foot-bg: #e9e9e6;
-  --foot-fg: #444444;
+  --foot-bg: #efefec;
+  --foot-fg: #555555;
   --foot-muted: #6b6b6b;
   --counter-fg: #ffffff;
   --banner-bg: #ffffff;
   --banner-fg: #000000;
   /* 世界地図（DNS伝播）の色 */
-  --sea: #f6f6f4;
-  --land: #d3d3cf;
-  --land-line: #ffffff;
-  --pin-ok: #4a4a4a;
-  --pin-warn: #9a9a95;
-  --pin-bad: #ffffff;
-  --pin-bad-mark: #2b2b2b;
+  --sea: #eaf1f7;
+  --land: #a8c3dc;
+  --land-line: #f4f8fb;
+  --pin-ok: #2f9e5b;
+  --pin-warn: #e0962a;
+  --pin-bad: #d6504a;
+  --pin-bad-mark: #ffffff;
   color-scheme: light;
 }
 
@@ -470,6 +471,261 @@
 .cn-bar button { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); width: 28px; height: 28px; border: 0; border-radius: 50%; cursor: pointer; background: rgba(0, 0, 0, .25); color: #ffffff; font-size: 16px; line-height: 1; }
 .toast { position: fixed; left: 50%; bottom: 110px; transform: translateX(-50%); z-index: 30; max-width: 90vw; padding: 8px 16px; border-radius: 8px; background: rgba(0, 0, 0, .82); color: #ffffff; font-size: 14px; }
 
+/* ---------- イタリア風：2000年代のポータル・個人サイト（青と三色旗） ---------- */
+:root[data-theme="it"] {
+  --font: Verdana, Geneva, Tahoma, sans-serif;
+  --mono: "Courier New", Courier, monospace;
+  --bg-color: #0b5ea8;
+  --bg-image: repeating-linear-gradient(135deg, rgba(255, 255, 255, .07) 0 2px, transparent 2px 10px);
+  --bg-size: auto;
+  --paper: #fffdf5;
+  --text: #1a1a1a;
+  --muted: #55606e;
+  --line: #b9c7d8;
+  --row-a: #eef4fb;
+  --row-b: #fffdf5;
+  --page-border: 3px solid #ffffff;
+  --page-shadow: 0 0 0 3px #0a4a85;
+  --title-bg: linear-gradient(#1976d2, #0b4f9c);
+  --brand-font: bold 42px/1.1 Georgia, "Times New Roman", serif;
+  --brand-style: italic;
+  --brand-transform: none;
+  --brand-spacing: 0;
+  --brand-fill: linear-gradient(#ffffff, #ffe082);
+  --brand-shadow: drop-shadow(2px 2px 0 #b71c1c);
+  --tagline: #ffecb3;
+  --marquee-bg: #00843d;
+  --marquee-fg: #ffffff;
+  --peek-bg: #fff3e0;
+  --peek-fg: #c62828;
+  --peek-label: #c62828;
+  --peek-border: #c62828;
+  --tabs-bg: #e3eefb;
+  --tabs-rule: 3px solid #c62828;
+  --tab-bg: #ffffff;
+  --tab-fg: #0b4f9c;
+  --tab-border: 1px solid #7fa6d6;
+  --tab-on-bg: #c62828;
+  --tab-on-fg: #ffffff;
+  --tab-on-border: 1px solid #c62828;
+  --tab-on-mark: "» ";
+  --tab-mark-color: #ffffff;
+  --stripe: linear-gradient(90deg, #009246 0 33.33%, #ffffff 0 66.66%, #ce2b37 0);
+  --stripe-h: 7px;
+  --h1: #0b4f9c;
+  --h1-mark: "» ";
+  --h1-mark-color: #c62828;
+  --h1-rule: 2px solid #009246;
+  --h2: #0b4f9c;
+  --h2-mark: "• ";
+  --h2-mark-color: #009246;
+  --link: #0b4f9c;
+  --link-visited: #6a1b9a;
+  --link-hover-fg: #c62828;
+  --link-hover-bg: transparent;
+  --btn-bg: linear-gradient(#ffffff, #d6e4f5);
+  --btn-fg: #0b4f9c;
+  --btn-border: 1px solid #0b4f9c;
+  --input-border: 1px solid #7fa6d6;
+  --stat-bg: #0b4f9c;
+  --stat-fg: #ffe082;
+  --stat-label: #b3d4ff;
+  --stat-sub: #ffffff;
+  --stat-border: 1px solid #ffd54f;
+  --stat-prefix: "» ";
+  --thead-bg: #0b4f9c;
+  --thead-fg: #ffffff;
+  --ok: #1d6b1d;
+  --ok-soft: #e2f3e2;
+  --warn: #8a4b00;
+  --warn-soft: #fff0c8;
+  --bad: #c62828;
+  --bad-soft: #ffe0e0;
+  --info: #0b4f9c;
+  --info-soft: #e3eefb;
+  --alert: #c62828;
+  --foot-bg: #0b4f9c;
+  --foot-fg: #ffffff;
+  --foot-muted: #cfe2ff;
+  --counter-fg: #ffe082;
+  --banner-bg: linear-gradient(#009246, #00692f);
+  --banner-fg: #ffffff;
+  --sea: #e3eefb;
+  --land: #6f9fd8;
+  --land-line: #e3eefb;
+}
+
+/* ---------- ドイツ風：2000年代の「Homepage」（方眼の背景、黒・赤・金） ---------- */
+:root[data-theme="de"] {
+  --font: Arial, Helvetica, sans-serif;
+  --mono: "Courier New", Courier, monospace;
+  --bg-color: #cdd1d6;
+  --bg-image: linear-gradient(#bfc4ca 1px, transparent 1px), linear-gradient(90deg, #bfc4ca 1px, transparent 1px);
+  --bg-size: 16px 16px;
+  --paper: #ffffff;
+  --text: #000000;
+  --muted: #555555;
+  --line: #8c8c8c;
+  --row-a: #eeeeee;
+  --row-b: #ffffff;
+  --page-border: 2px solid #000000;
+  --page-shadow: none;
+  --title-bg: #111111;
+  --brand-font: bold 40px/1.1 Arial, Helvetica, sans-serif;
+  --brand-style: normal;
+  --brand-transform: none;
+  --brand-spacing: 0;
+  --brand-fill: linear-gradient(#ffdd00, #ffb300);
+  --brand-shadow: none;
+  --tagline: #ffffff;
+  --marquee-bg: #dd0000;
+  --marquee-fg: #ffffff;
+  --peek-bg: #ffcc00;
+  --peek-fg: #000000;
+  --peek-label: #dd0000;
+  --peek-border: #000000;
+  --tabs-bg: #e6e6e6;
+  --tabs-rule: 3px solid #dd0000;
+  --tab-bg: #f7f7f7;
+  --tab-fg: #000000;
+  --tab-border: 1px solid #8c8c8c;
+  --tab-on-bg: #000000;
+  --tab-on-fg: #ffcc00;
+  --tab-on-border: 1px solid #000000;
+  --tab-on-mark: "► ";
+  --tab-mark-color: #dd0000;
+  --stripe: linear-gradient(#000000 0 33.33%, #dd0000 0 66.66%, #ffcc00 0);
+  --stripe-h: 9px;
+  --h1: #000000;
+  --h1-mark: "■ ";
+  --h1-mark-color: #dd0000;
+  --h1-rule: 2px solid #000000;
+  --h2: #333333;
+  --h2-mark: "► ";
+  --h2-mark-color: #dd0000;
+  --link: #003399;
+  --link-visited: #663399;
+  --link-hover-fg: #dd0000;
+  --link-hover-bg: transparent;
+  --btn-bg: #e6e6e6;
+  --btn-fg: #000000;
+  --btn-border: 1px solid #000000;
+  --input-border: 1px solid #666666;
+  --stat-bg: #222222;
+  --stat-fg: #ffcc00;
+  --stat-label: #bbbbbb;
+  --stat-sub: #ffffff;
+  --stat-border: 1px solid #000000;
+  --stat-prefix: "► ";
+  --thead-bg: #333333;
+  --thead-fg: #ffcc00;
+  --ok: #1d6b1d;
+  --ok-soft: #e2f3e2;
+  --warn: #7a4a00;
+  --warn-soft: #fff0b0;
+  --bad: #c00000;
+  --bad-soft: #ffe0e0;
+  --info: #000000;
+  --info-soft: #eeeeee;
+  --alert: #dd0000;
+  --foot-bg: #111111;
+  --foot-fg: #ffffff;
+  --foot-muted: #bbbbbb;
+  --counter-fg: #ffcc00;
+  --banner-bg: #ffcc00;
+  --banner-fg: #000000;
+  --sea: #e6e6e6;
+  --land: #7d8590;
+  --land-line: #e6e6e6;
+}
+
+/* ---------- イングランド風：テレビの文字放送（黒地に原色、等幅の文字） ---------- */
+:root[data-theme="gb"] {
+  --font: "Courier New", "Lucida Console", Courier, monospace;
+  --mono: "Courier New", "Lucida Console", Courier, monospace;
+  --bg-color: #000000;
+  --bg-image: none;
+  --bg-size: auto;
+  --paper: #000000;
+  --card-bg: #000000;
+  --text: #ffffff;
+  --muted: #00e5e5;
+  --line: #0000ff;
+  --row-a: #000000;
+  --row-b: #0c0c2e;
+  --page-border: 0 solid transparent;
+  --page-shadow: none;
+  --title-bg: #0000ff;
+  --brand-font: 900 40px/1.1 "Courier New", Courier, monospace;
+  --brand-style: normal;
+  --brand-transform: uppercase;
+  --brand-spacing: 4px;
+  --brand-fill: linear-gradient(#ffff00, #ffff00);
+  --brand-shadow: none;
+  --tagline: #00ffff;
+  --marquee-bg: #ff0000;
+  --marquee-fg: #ffffff;
+  --peek-bg: #ff0000;
+  --peek-fg: #ffffff;
+  --peek-label: #ffff00;
+  --peek-border: #ff0000;
+  --tabs-bg: #000000;
+  --tabs-rule: 2px solid #0000ff;
+  --tab-bg: #000000;
+  --tab-fg: #00ffff;
+  --tab-border: 1px solid #00ffff;
+  --tab-on-bg: #ffff00;
+  --tab-on-fg: #000000;
+  --tab-on-border: 1px solid #ffff00;
+  --tab-on-mark: "▶ ";
+  --tab-mark-color: #ff0000;
+  --stripe: linear-gradient(90deg, #ff0000 0 25%, #00ff00 0 50%, #ffff00 0 75%, #00ffff 0);
+  --stripe-h: 8px;
+  --h1: #ffff00;
+  --h1-mark: "■ ";
+  --h1-mark-color: #ff0000;
+  --h1-rule: 2px solid #0000ff;
+  --h2: #00ff00;
+  --h2-mark: "> ";
+  --h2-mark-color: #00ffff;
+  --link: #00ffff;
+  --link-visited: #ff80ff;
+  --link-hover-fg: #000000;
+  --link-hover-bg: #ffff00;
+  --btn-bg: #00ffff;
+  --btn-fg: #000000;
+  --btn-border: 1px solid #00ffff;
+  --input-border: 2px solid #00ffff;
+  --stat-bg: #0000ff;
+  --stat-fg: #ffff00;
+  --stat-label: #00ffff;
+  --stat-sub: #ffffff;
+  --stat-border: 0 solid transparent;
+  --thead-bg: #0000ff;
+  --thead-fg: #ffff00;
+  --ok: #00ff00;
+  --ok-soft: #000000;
+  --warn: #ffff00;
+  --warn-soft: #000000;
+  --bad: #ff5555;
+  --bad-soft: #000000;
+  --info: #00ffff;
+  --info-soft: #000000;
+  --alert: #ff5555;
+  --foot-bg: #000000;
+  --foot-fg: #ffffff;
+  --foot-muted: #00e5e5;
+  --counter-fg: #ffff00;
+  --banner-bg: #0000ff;
+  --banner-fg: #ffff00;
+  --sea: #000080;
+  --land: #00c000;
+  --land-line: #000080;
+}
+:root[data-theme="gb"] .note.info { color: #ffffff; }
+:root[data-theme="gb"] .chip { background: #000000; color: #ffffff; }
+:root[data-theme="gb"] .legend .dot { box-shadow: none; }
+
 /* ---------- 共通の構造 ---------- */
 * { box-sizing: border-box; }
 body {
@@ -569,7 +825,7 @@ h2::after { content: " :"; }
 
 select, input[type="text"] { font: inherit; color: #000000; background: #ffffff; border: var(--input-border); padding: 4px 6px; min-width: 0; border-radius: calc(var(--radius) * .6); }
 select:focus-visible, input:focus-visible, button:focus-visible, a:focus-visible { outline: 2px dotted var(--alert); outline-offset: 2px; }
-:root:not([data-theme]) :focus-visible, :root[data-theme="mono"] :focus-visible { outline: 2px solid #5a5a5a; outline-offset: 2px; }
+:root:not([data-theme]) :focus-visible, :root[data-theme="mono"] :focus-visible { outline: 2px solid #6e6e6e; outline-offset: 2px; }
 
 .btn { font: inherit; cursor: pointer; padding: 3px 14px; color: var(--btn-fg); background: var(--btn-bg); border: var(--btn-border); border-radius: var(--pill); }
 .btn.primary { font-weight: bold; }
@@ -586,7 +842,7 @@ select:focus-visible, input:focus-visible, button:focus-visible, a:focus-visible
 .stat .badge { margin-top: 3px; }
 
 /* 表：ラベルと値を詰めて並べ、行を交互に塗る */
-.card { border: 1px solid var(--line); overflow-x: auto; background: #ffffff; border-radius: var(--radius); }
+.card { border: 1px solid var(--line); overflow-x: auto; background: var(--card-bg); border-radius: var(--radius); }
 table { width: 100%; border-collapse: collapse; }
 th, td { text-align: left; padding: 4px 8px; vertical-align: top; }
 tbody tr:nth-child(odd) > * { background: var(--row-a); }
@@ -618,7 +874,6 @@ table.list thead th.num { text-align: right; }
 
 .map { height: 300px; border: 1px solid var(--line); background: #dddddd; border-radius: var(--radius); overflow: hidden; z-index: 0; }
 .map .leaflet-control-attribution { font: 11px/1.4 Arial, sans-serif; }
-:root:not([data-theme]) .map .leaflet-tile-pane, :root[data-theme="mono"] .map .leaflet-tile-pane { filter: grayscale(1); }
 
 .worldmap { border: 1px solid var(--line); background: var(--sea); border-radius: var(--radius); overflow: hidden; }
 .worldmap svg { display: block; width: 100%; height: auto; }
@@ -650,7 +905,7 @@ table.list thead th.num { text-align: right; }
 @media (max-width: 720px) { .ports-form { grid-template-columns: 1fr 1fr; } .ports-form input { grid-column: 1 / -1; } }
 .url { overflow-wrap: anywhere; font-family: var(--mono); font-size: 13px; }
 
-pre.raw { margin: 0; padding: 8px 10px; font: 13px/1.5 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; background: #ffffff; }
+pre.raw { margin: 0; padding: 8px 10px; font: 13px/1.5 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; background: var(--card-bg); }
 .canvas-preview { max-width: 100%; height: auto; border: 1px solid var(--line); display: block; background: #ffffff; }
 .chips { display: flex; flex-wrap: wrap; gap: 4px; padding: 8px; }
 .chip { border: 1px solid var(--line); background: var(--row-a); padding: 0 8px; font-size: 13px; }
