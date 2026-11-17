@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>NetCheck — 接続・ブラウザ・DNS診断</title>
-<meta name="description" content="IPアドレス、ブラウザ情報、フィンガープリント、WebRTC漏れ、DNS伝播をまとめて確認できるツール">
+<meta name="description" content="IPアドレス、ブラウザ情報、フィンガープリント、WebRTC漏れ、DNS伝播、IP・ドメインの登録情報をまとめて確認できるツール">
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>
@@ -17,6 +17,7 @@
       <button role="tab" data-tab="fp">フィンガープリント</button>
       <button role="tab" data-tab="webrtc">WebRTC</button>
       <button role="tab" data-tab="dns">DNS伝播</button>
+      <button role="tab" data-tab="lookup">IP・ドメイン検索</button>
     </nav>
     <select class="tab-select" aria-label="診断ツールを選ぶ">
       <option value="ip">IP・接続</option>
@@ -24,6 +25,7 @@
       <option value="fp">フィンガープリント</option>
       <option value="webrtc">WebRTC</option>
       <option value="dns">DNS伝播</option>
+      <option value="lookup">IP・ドメイン検索</option>
     </select>
   </div>
 </header>
@@ -76,10 +78,21 @@
     </form>
     <div id="dns-body"></div>
   </section>
+
+  <section data-panel="lookup" hidden>
+    <h1>IP・ドメイン検索</h1>
+    <p class="lead">IPアドレスかドメイン名を入力してください。どちらかを自動で判別して、登録情報を調べます。</p>
+    <form id="lookup-form" class="search-form">
+      <input id="lookup-q" type="text" placeholder="8.8.8.8 または example.com" autocomplete="off" autocapitalize="off" spellcheck="false" required aria-label="IPアドレスまたはドメイン名">
+      <button class="btn primary" type="submit">調べる</button>
+    </form>
+    <div id="lookup-hero" class="hero"></div>
+    <div id="lookup-body"></div>
+  </section>
 </main>
 
 <footer class="wrap foot">
-  <p>IP・接続情報とDNSの問い合わせだけがサーバーを経由します。それ以外はブラウザ内で完結します。</p>
+  <p>IP・接続情報と、DNS・IP・ドメインの検索だけがサーバーを経由します。それ以外はブラウザ内で完結します。</p>
 </footer>
 
 <script src="/app.js" type="module"></script>

@@ -54,7 +54,7 @@ body {
 .tabs button:hover { color: var(--text); }
 .tabs button[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
 .tab-select { display: none; }
-@media (max-width: 720px) {
+@media (max-width: 900px) {
   .tabs { display: none; }
   .tab-select { display: block; margin-left: auto; }
 }
@@ -125,3 +125,9 @@ table.list thead th.num { text-align: right; }
 .canvas-preview { max-width: 100%; height: auto; border: 1px solid var(--line); border-radius: 6px; display: block; background: #fff; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px 14px; }
 .chip { border: 1px solid var(--line); border-radius: 99px; padding: 1px 10px; font-size: 13px; }
+
+/* IP検索・ドメイン検索 */
+.search-form { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-bottom: 16px; }
+pre.raw { margin: 0; padding: 12px 14px; font: 13px/1.55 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+a { color: var(--accent); }
+.stat .s .badge { margin-top: 4px; }

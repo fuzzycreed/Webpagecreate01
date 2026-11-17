@@ -1,7 +1,7 @@
 // NetCheck フロントエンド。タブ（狭い画面ではプルダウン）で各診断を切り替える。
 
 const $ = (sel, root = document) => root.querySelector(sel);
-const TABS = ['ip', 'browser', 'fp', 'webrtc', 'dns'];
+const TABS = ['ip', 'browser', 'fp', 'webrtc', 'dns', 'lookup'];
 
 // ---------- 小さなDOMヘルパー ----------
 
@@ -33,6 +33,8 @@ const section = (title, ...body) => [el('h2', {}, title), ...body];
 const stat = (k, v, s, mono) => el('div', { class: 'stat' }, el('div', { class: 'k' }, k), el('div', { class: `v${mono ? ' mono' : ''}` }, show(v)), s ? el('div', { class: 's' }, s) : null);
 const note = (kind, text) => el('p', { class: `note ${kind}` }, text);
 const badge = (kind, text) => el('span', { class: `badge ${kind}` }, text);
+// replaceChildren は null を文字列として描画してしまうので、空の要素を除いてから入れる
+const fill = (node, ...kids) => node.replaceChildren(...kids.flat().filter(Boolean));
 const loading = (text = '取得中…') => el('p', { class: 'muted' }, text);
 
 async function sha256(input) {
@@ -87,7 +89,8 @@ async function initIp() {
       : null;
 
   body.replaceChildren(
-    ...[tzNote].filter(Boolean),
+    ...[tzNote,
+    info.ip ? el('p', { style: 'margin:14px 0 0' }, el('a', { href: `#lookup?q=${encodeURIComponent(info.ip)}` }, 'このIPの登録情報を調べる →')) : null].filter(Boolean),
     ...section(
       '位置情報（IPからの推定）',
       kvTable([
@@ -539,30 +542,220 @@ async function runDns(name, type, ecs) {
 }
 
 function initDns() {
-  const form = $('#dns-form');
-  form.addEventListener('submit', (e) => {
+  $('#dns-form').addEventListener('submit', (e) => {
     e.preventDefault();
     const name = $('#dns-name').value.trim();
-    const type = $('#dns-type').value;
-    const ecs = $('#dns-ecs').value.trim();
     if (!name) return;
-    const qs = new URLSearchParams({ name, type });
-    if (ecs) qs.set('ecs', ecs);
-    history.replaceState(null, '', `#dns?${qs}`);
-    runDns(name, type, ecs);
+    const qs = new URLSearchParams({ name, type: $('#dns-type').value });
+    if ($('#dns-ecs').value.trim()) qs.set('ecs', $('#dns-ecs').value.trim());
+    go('dns', qs);
   });
+}
 
-  // #dns?name=example.com&type=A の形のURLを共有できるようにする
-  const qs = new URLSearchParams(location.hash.split('?')[1] || '');
-  if (qs.get('name')) {
-    $('#dns-name').value = qs.get('name');
-    if ([...$('#dns-type').options].some((o) => o.value === qs.get('type'))) $('#dns-type').value = qs.get('type');
-    if (qs.get('ecs')) {
-      $('#dns-ecs').value = qs.get('ecs');
-      $('.dns-adv').open = true;
-    }
-    form.requestSubmit();
+// #dns?name=example.com&type=A の形のURLを共有できる
+function queryDns(qs) {
+  if (!qs.get('name')) return;
+  $('#dns-name').value = qs.get('name');
+  if ([...$('#dns-type').options].some((o) => o.value === qs.get('type'))) $('#dns-type').value = qs.get('type');
+  $('#dns-ecs').value = qs.get('ecs') || '';
+  if (qs.get('ecs')) $('.dns-adv').open = true;
+  runDns(qs.get('name'), $('#dns-type').value, qs.get('ecs') || '');
+}
+
+// ---------- IP・ドメイン検索 ----------
+
+const looksLikeIp = (q) => /^\[?[0-9a-f:.]+\]?$/i.test(q) && (q.includes(':') || /^\d+\.\d+\.\d+\.\d+$/.test(q));
+
+const regionNames = new Intl.DisplayNames(['ja'], { type: 'region' });
+function regionName(cc) {
+  if (!cc) return null;
+  try {
+    return `${regionNames.of(cc.toUpperCase())}（${cc.toUpperCase()}）`;
+  } catch {
+    return cc;
   }
+}
+
+function fmtDate(value) {
+  if (!value) return null;
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? value : d.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+const ROLE_LABEL = {
+  registrant: '登録者', administrative: '管理担当', technical: '技術担当', abuse: '不正利用の連絡先',
+  registrar: 'レジストラ', billing: '請求担当', noc: 'ネットワーク運用', reseller: '再販業者', sponsor: 'スポンサー',
+};
+
+function entitiesTable(entities) {
+  const rows = entities
+    .filter((e) => e.name || e.org || e.email || e.tel || e.address)
+    .map((e) =>
+      el(
+        'tr',
+        {},
+        el('td', {}, e.roles.map((r) => ROLE_LABEL[r] || r).join('、') || '—'),
+        el('td', {}, e.name || e.org || '—', e.name && e.org && e.org !== e.name ? el('div', { class: 'sub' }, e.org) : null, e.handle ? el('div', { class: 'sub' }, e.handle) : null),
+        el('td', { class: 'ans' }, [e.email, e.tel, e.address].filter(Boolean).map((v) => el('div', {}, v))),
+      ),
+    );
+  if (!rows.length) return el('p', { class: 'muted' }, '公開されている連絡先はありません。');
+  return el('div', { class: 'card' }, el('table', { class: 'list' }, el('thead', {}, el('tr', {}, el('th', {}, '役割'), el('th', {}, '名前'), el('th', {}, '連絡先'))), el('tbody', {}, rows)));
+}
+
+const lines = (items) => (items?.length ? items.map((v) => el('div', {}, v)) : null);
+const ipLink = (ip) => el('a', { href: `#lookup?q=${encodeURIComponent(ip)}` }, ip);
+const domainLink = (name) => el('a', { href: `#lookup?q=${encodeURIComponent(name)}` }, name);
+
+function initSearch(tab) {
+  $(`#${tab}-form`).addEventListener('submit', (e) => {
+    e.preventDefault();
+    const q = $(`#${tab}-q`).value.trim();
+    if (q) go(tab, new URLSearchParams({ q }));
+  });
+}
+
+async function runSearch(tab, api, q, render) {
+  const body = $(`#${tab}-body`);
+  const hero = $(`#${tab}-hero`);
+  const btn = $(`#${tab}-form button`);
+  $(`#${tab}-q`).value = q;
+  btn.disabled = true;
+  hero.replaceChildren();
+  body.replaceChildren(loading('検索中…'));
+  try {
+    const res = await fetch(`${api}?${new URLSearchParams({ q })}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    render(data, hero, body);
+  } catch (e) {
+    body.replaceChildren(note('bad', e.message));
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ---------- IPアドレスの結果 ----------
+
+function renderIp(d, hero, body) {
+  if (d.special) {
+    hero.replaceChildren(stat('IPアドレス', d.ip, `IPv${d.version}`, true));
+    body.replaceChildren(note('info', `${d.ip} は${d.special}です。インターネット上の登録情報はありません。`));
+    return;
+  }
+  const { asn, rdap } = d;
+  const country = asn?.country || rdap?.country;
+  hero.replaceChildren(
+    stat('IPアドレス', d.ip, `IPv${d.version}`, true),
+    stat('事業者', asn?.name || rdap?.name, asn ? `AS${asn.asn}` : null),
+    stat('登録国', regionName(country)),
+    stat('逆引きホスト名', d.ptr[0] || null, d.ptr.length > 1 ? `ほか${d.ptr.length - 1}件` : null),
+  );
+
+  const failed = Object.keys(d.errors);
+  const LABEL = { ptr: '逆引き', asn: 'AS番号', rdap: '登録情報' };
+  fill(body,
+    failed.length ? note('warn', `一部の情報を取得できませんでした（${failed.map((k) => `${LABEL[k]}: ${d.errors[k]}`).join('、')}）`) : null,
+    ...section(
+      '経路とAS',
+      kvTable([
+        ['逆引きホスト名', lines(d.ptr.map(domainLink))],
+        ['AS番号', asn ? `AS${asn.asn}` : null],
+        ['AS名', asn?.name],
+        ['経路（プレフィックス）', asn?.prefix],
+        ['割り当て元', asn?.registry?.toUpperCase()],
+        ['割り当て日', fmtDate(asn?.allocated)],
+        ['登録国', regionName(country)],
+      ]),
+      el('p', { class: 'sub', style: 'margin:6px 2px 0' }, '登録国はアドレスが割り当てられた先の国で、実際に使われている場所とは限りません。'),
+    ),
+    ...(rdap
+      ? [
+          ...section(
+            'ネットワークの登録情報',
+            kvTable([
+              ['ネットワーク名', rdap.name],
+              ['範囲', rdap.start && rdap.end ? `${rdap.start} – ${rdap.end}` : null],
+              ['CIDR', lines(rdap.cidr)],
+              ['種別', rdap.type],
+              ['ハンドル', rdap.handle],
+              ['上位ネットワーク', rdap.parent],
+              ['登録日', fmtDate(rdap.events.registration)],
+              ['最終更新', fmtDate(rdap.events['last changed'])],
+              ['WHOISサーバー', rdap.source],
+            ]),
+          ),
+          ...section('連絡先', entitiesTable(rdap.entities)),
+          ...(rdap.remarks.length ? section('備考', el('div', { class: 'card' }, el('pre', { class: 'raw' }, rdap.remarks.join('\n')))) : []),
+        ]
+      : d.errors.rdap
+        ? []
+        : [note('warn', 'このIPの登録情報は見つかりませんでした。')]),
+  );
+}
+
+// ---------- ドメインの結果 ----------
+
+function renderDomain(d, hero, body) {
+  const r = d.rdap;
+  const expires = r?.events.expiration;
+  let remaining = null;
+  if (expires && !Number.isNaN(new Date(expires).getTime())) {
+    const days = Math.ceil((new Date(expires) - Date.now()) / 864e5);
+    remaining = days < 0 ? badge('bad', '期限切れ') : badge(days < 30 ? 'warn' : 'ok', `残り${days}日`);
+  }
+  hero.replaceChildren(
+    stat('ドメイン', d.registered || d.query, d.registered && d.registered !== d.query ? `${d.query} の登録元` : null, true),
+    ...(r ? [stat('レジストラ', r.registrar?.name, r.registrar?.ianaId ? `IANA ID ${r.registrar.ianaId}` : null), stat('登録日', fmtDate(r.events.registration)), stat('有効期限', fmtDate(expires), remaining)] : []),
+  );
+
+  const records = d.dns.flatMap((g) => (g.answers || []).map((a) => ({ ...a })));
+  const dnsFailed = d.dns.filter((g) => g.error).map((g) => g.type);
+  const nx = d.dns.some((g) => g.status === 'NXDOMAIN');
+  const value = (a) => (a.type === 'A' || a.type === 'AAAA' ? ipLink(a.data) : a.data);
+
+  const errs = Object.values(d.errors);
+  let regNote = null;
+  if (!d.registered) regNote = note('warn', `登録情報が見つかりませんでした。未登録か、このドメインの種類では登録情報が公開されていない可能性があります。${errs.length ? `（${errs.join('、')}）` : ''}`);
+
+  fill(body,
+    regNote,
+    ...(r
+      ? [
+          ...section(
+            '登録情報',
+            kvTable([
+              ['状態', lines(r.status)],
+              ['ネームサーバー', lines(r.nameservers)],
+              ['DNSSEC', r.dnssec === null ? null : r.dnssec ? '署名あり' : '署名なし'],
+              ['登録日', fmtDate(r.events.registration)],
+              ['有効期限', fmtDate(expires)],
+              ['最終更新', fmtDate(r.events['last changed'])],
+              ['レジストリのID', r.handle],
+              ['WHOISサーバー', r.source],
+            ]),
+          ),
+          ...section('連絡先', entitiesTable(r.entities)),
+        ]
+      : []),
+    ...(d.whois ? section(`WHOIS（${d.whois.server}）`, el('div', { class: 'card' }, el('pre', { class: 'raw' }, d.whois.text))) : []),
+    ...section(
+      `DNSレコード（${d.query}）`,
+      records.length
+        ? el(
+            'div',
+            { class: 'card' },
+            el(
+              'table',
+              { class: 'list' },
+              el('thead', {}, el('tr', {}, el('th', {}, '種類'), el('th', {}, '値'), el('th', { class: 'num' }, 'TTL'))),
+              el('tbody', {}, records.map((a) => el('tr', {}, el('td', {}, badge('info', a.type)), el('td', { class: 'ans' }, value(a)), el('td', { class: 'num' }, `${a.ttl}秒`)))),
+            ),
+          )
+        : el('p', { class: 'muted' }, nx ? 'この名前はDNSに存在しません（NXDOMAIN）。' : 'レコードが見つかりませんでした。'),
+      dnsFailed.length ? el('p', { class: 'sub' }, `取得に失敗した種類: ${dnsFailed.join(', ')}`) : null,
+    ),
+  );
 }
 
 // ---------- タブ切り替え ----------
@@ -576,10 +769,24 @@ const INIT = {
     runWebrtc();
   },
   dns: initDns,
+  lookup: () => initSearch('lookup'),
+};
+// ハッシュの「?」以降（検索条件）を受け取って実行するタブ
+const QUERY = {
+  dns: queryDns,
+  lookup: (qs) => {
+    const q = (qs.get('q') || '').trim();
+    if (!q) return;
+    // 入力がIPアドレスの形ならIP検索、それ以外はドメイン検索に振り分ける
+    if (looksLikeIp(q)) runSearch('lookup', '/api/ip', q, renderIp);
+    else runSearch('lookup', '/api/domain', q, renderDomain);
+  },
 };
 const started = new Set();
+const lastQuery = {};
 
-function activate(tab) {
+function activate() {
+  let [tab, query = ''] = location.hash.slice(1).split('?');
   if (!TABS.includes(tab)) tab = 'ip';
   for (const panel of document.querySelectorAll('[data-panel]')) panel.hidden = panel.dataset.panel !== tab;
   for (const btn of document.querySelectorAll('.tabs [data-tab]')) btn.setAttribute('aria-selected', String(btn.dataset.tab === tab));
@@ -588,10 +795,24 @@ function activate(tab) {
     started.add(tab); // 各タブの診断は初めて開いたときに一度だけ走らせる
     INIT[tab]();
   }
+  if (query && QUERY[tab] && lastQuery[tab] !== query) {
+    lastQuery[tab] = query;
+    QUERY[tab](new URLSearchParams(query));
+    scrollTo(0, 0);
+  }
 }
 
-const currentTab = () => location.hash.slice(1).split('?')[0];
-for (const btn of document.querySelectorAll('.tabs [data-tab]')) btn.addEventListener('click', () => (location.hash = btn.dataset.tab));
-$('.tab-select').addEventListener('change', (e) => (location.hash = e.target.value));
-addEventListener('hashchange', () => activate(currentTab()));
-activate(currentTab());
+// 検索の実行。条件をURLに残すので、そのまま共有や「戻る」ができる
+function go(tab, qs) {
+  lastQuery[tab] = undefined;
+  const before = location.href;
+  location.hash = `${tab}?${qs}`;
+  if (location.href === before) activate(); // 同じ条件での再検索は hashchange が起きない
+}
+
+// タブを切り替えても、そのタブで最後に見ていた検索結果のURLに戻す
+const tabHash = (tab) => (lastQuery[tab] ? `${tab}?${lastQuery[tab]}` : tab);
+for (const btn of document.querySelectorAll('.tabs [data-tab]')) btn.addEventListener('click', () => (location.hash = tabHash(btn.dataset.tab)));
+$('.tab-select').addEventListener('change', (e) => (location.hash = tabHash(e.target.value)));
+addEventListener('hashchange', activate);
+activate();
