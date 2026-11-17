@@ -803,27 +803,127 @@ function renderDomain(d, hero, body) {
   );
 }
 
-// ---------- 平成風の飾り ----------
+// ---------- テーマ ----------
+// 標準は白黒（mono）。ロゴのあたりを10回クリックすると、隠しテーマのプルダウンが出る。
+// 飾りの文言だけテーマの言語に変わり、診断結果の表示は日本語のまま。
 
-// 「あなたの情報は丸見えです」バナー。見えている情報をそのまま出すだけで、保存はしない
+const THEMES = {
+  mono: { tagline: '接続・ブラウザ・DNS診断', copyright: '© 2026 NetCheck' },
+  jp: {
+    marquee: '★☆★ ようこそ NetCheck へ ★☆★　あなたのIPアドレス・ブラウザ・画面サイズ・フォントまで、ぜ～んぶ見えちゃいます　……　ブックマークはトップページにお願いします　……　キリ番を踏んだ方はご一報ください　★☆★',
+    tagline: '～ あなたの接続情報 まるみえ診断 ～',
+    peekLabel: '！警告！',
+    peek: (ip, detail) => `あなたのIPアドレス ${ip}${detail ? `（${detail}）` : ''} は、このサイトから丸見えです！！`,
+    counterPre: 'あなたは',
+    counterPost: '回目のご訪問です',
+    kiriban: '☆ キリ番ゲット！おめでとうございます ☆',
+    linkFree: 'このページはリンクフリーです',
+    bestViewed: 'Sorry, this page is Japanese only. ／ 推奨環境: 800×600 以上、Internet Explorer 5.5 以上（うそです）',
+    copyright: 'Copyright (C) 2026 NetCheck All Rights Reserved.',
+  },
+  us: {
+    marquee: '*** WELCOME 2 NetCheck!!! *** Your IP address, your browser, your screen size, even your FONTS are ALL VISIBLE to this page!!! *** Don\'t forget to bookmark this site *** Tell ur friends!!! ***',
+    tagline: '~*~ The #1 Place On The Web To See What THEY See ~*~',
+    peekLabel: '!!! WARNING !!!',
+    peek: (ip, detail) => `Your IP address ${ip}${detail ? ` (${detail})` : ''} is EXPOSED to this website!!!`,
+    counterPre: 'You have visited this page',
+    counterPost: 'times!',
+    kiriban: '*** CONGRATS!!! You hit a LUCKY NUMBER! ***',
+    linkFree: 'Link to us! Copy our button!',
+    bestViewed: 'Best viewed with Netscape Navigator 4.0 at 800x600 (just kidding) :: Made with Notepad',
+    copyright: 'Copyright (C) 2026 NetCheck. All Rights Reserved. This page is always under construction.',
+  },
+  ru: {
+    marquee: '★ Добро пожаловать на NetCheck! ★ Ваш IP-адрес, браузер, разрешение экрана и даже шрифты — всё видно как на ладони ★ Добавьте сайт в закладки! ★ Расскажите друзьям! ★',
+    tagline: '~ Узнай, что о тебе знает Интернет ~',
+    peekLabel: 'ВНИМАНИЕ!',
+    peek: (ip, detail) => `Ваш IP-адрес ${ip}${detail ? ` (${detail})` : ''} виден этому сайту!!!`,
+    counterPre: 'Вы заходили сюда уже',
+    counterPost: 'раз',
+    kiriban: '★ Поздравляем! Вам выпало красивое число! ★',
+    linkFree: 'Наша кнопка — ставьте ссылку!',
+    bestViewed: 'Сайт оптимизирован под Internet Explorer 5.5, разрешение 800×600 (шутка)',
+    copyright: 'Copyright © 2026 NetCheck. Все права защищены.',
+  },
+  cn: {
+    marquee: '★ 欢迎光临 NetCheck！★ 您的IP地址、浏览器、屏幕分辨率、甚至字体……本站全都看得见 ★ 请收藏本站 ★ 欢迎告诉您的朋友 ★',
+    tagline: '～ 您的上网信息 一览无余 ～',
+    peekLabel: '！警告！',
+    peek: (ip, detail) => `您的IP地址 ${ip}${detail ? `（${detail}）` : ''} 已经被本站看到了！！`,
+    counterPre: '您是第',
+    counterPost: '次访问本站',
+    kiriban: '☆ 恭喜！您踩到了吉利数字 ☆',
+    linkFree: '欢迎链接本站',
+    bestViewed: '建议使用 IE 5.5 以上浏览器、800×600 分辨率浏览（开玩笑的）',
+    copyright: '版权所有 © 2026 NetCheck',
+  },
+};
+
+const store = {
+  get(key) {
+    try {
+      return localStorage.getItem(key);
+    } catch {
+      return null;
+    }
+  },
+  set(key, value) {
+    try {
+      localStorage.setItem(key, value);
+    } catch {}
+  },
+};
+
+let peekInfo = null; // 警告バナーに出す、訪問者自身のIPと場所
+
+function applyTheme(name) {
+  if (!THEMES[name]) name = 'mono';
+  const t = THEMES[name];
+  document.documentElement.dataset.theme = name;
+  for (const node of document.querySelectorAll('[data-t]')) node.textContent = typeof t[node.dataset.t] === 'string' ? t[node.dataset.t] : '';
+  $('#theme-select').value = name;
+  $('#peek-text').textContent = peekInfo && t.peek ? t.peek(peekInfo.ip, peekInfo.detail) : '';
+  $('#peek').hidden = !(peekInfo && t.peek);
+  store.set('netcheck-theme', name);
+}
+
+// 見えている情報をそのまま出すだけで、保存はしない
 getInfo()
   .then((info) => {
     if (!info.ip) return;
     const where = [info.geo.city, info.geo.country].filter(Boolean).join(', ');
-    const detail = [where, info.network.asOrganization].filter(Boolean).join(' / ');
-    $('#peek-text').textContent = `あなたのIPアドレス ${info.ip}${detail ? `（${detail}）` : ''} は、このサイトから丸見えです！！`;
-    $('#peek').hidden = false;
+    peekInfo = { ip: info.ip, detail: [where, info.network.asOrganization].filter(Boolean).join(' / ') };
+    applyTheme(document.documentElement.dataset.theme);
   })
   .catch(() => {});
 
+// 隠しプルダウン：タイトル部分を続けて10回クリックで出す。一度出したら、このブラウザでは出たままにする
+const UNLOCK_CLICKS = 10;
+let clicks = 0;
+let clickTimer;
+function unlockThemes() {
+  $('#theme-pick').hidden = false;
+  store.set('netcheck-unlocked', '1');
+}
+$('#title-row').addEventListener('click', (e) => {
+  if (e.target.closest('#theme-pick')) return;
+  clearTimeout(clickTimer);
+  clickTimer = setTimeout(() => (clicks = 0), 2000); // 2秒あいたら数え直し
+  if (++clicks >= UNLOCK_CLICKS) {
+    clicks = 0;
+    unlockThemes();
+    $('#theme-select').focus();
+  }
+});
+$('#theme-select').addEventListener('change', (e) => applyTheme(e.target.value));
+if (store.get('netcheck-unlocked') === '1') unlockThemes();
+applyTheme(document.documentElement.dataset.theme);
+
 // 訪問回数はこのブラウザの中だけで数える（サーバーには送らない）
-let visits = 1;
-try {
-  visits = Number(localStorage.getItem('netcheck-visits') || 0) + 1;
-  localStorage.setItem('netcheck-visits', String(visits));
-} catch {}
+const visits = Number(store.get('netcheck-visits') || 0) + 1;
+store.set('netcheck-visits', String(visits));
 $('#counter').replaceChildren(...String(visits).padStart(6, '0').split('').map((n) => el('span', {}, n)));
-if (visits % 100 === 0 || /^(\d)\1+$/.test(String(visits)) && visits > 10) $('#kiriban').hidden = false;
+if (visits % 100 === 0 || (visits > 10 && /^(\d)\1+$/.test(String(visits)))) $('#kiriban').hidden = false;
 
 // ---------- タブ切り替え ----------
 

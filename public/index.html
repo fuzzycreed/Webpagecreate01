@@ -5,17 +5,32 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>NetCheck — 接続・ブラウザ・DNS診断</title>
 <meta name="description" content="IPアドレス、ブラウザ情報、フィンガープリント、WebRTC漏れ、DNS伝播、IP・ドメインの登録情報をまとめて確認できるツール">
+<script>
+// 保存済みの隠しテーマがあれば、描画の前に反映する（標準テーマが一瞬見えるのを防ぐ）
+try { document.documentElement.dataset.theme = localStorage.getItem('netcheck-theme') || 'mono'; } catch (e) { document.documentElement.dataset.theme = 'mono'; }
+</script>
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>
 <div class="page">
 <header class="top">
-  <div class="marquee" aria-hidden="true"><span>★☆★ ようこそ NetCheck へ ★☆★　あなたのIPアドレス・ブラウザ・画面サイズ・フォントまで、ぜ～んぶ見えちゃいます　……　ブックマークはトップページにお願いします　……　キリ番を踏んだ方はご一報ください　★☆★</span></div>
-  <div class="title-row">
+  <div class="marquee retro-only" aria-hidden="true"><span data-t="marquee"></span></div>
+  <div class="title-row" id="title-row">
     <a class="brand" href="#ip">NetCheck</a>
-    <div class="tagline">～ あなたの接続情報 まるみえ診断 ～</div>
+    <div class="tagline" data-t="tagline">接続・ブラウザ・DNS診断</div>
+    <div class="theme-pick" id="theme-pick" hidden>
+      <label>テーマ：
+        <select id="theme-select">
+          <option value="mono">白黒（標準）</option>
+          <option value="jp">🇯🇵 日本風</option>
+          <option value="us">🇺🇸 アメリカ風</option>
+          <option value="ru">🇷🇺 ロシア風</option>
+          <option value="cn">🇨🇳 中国風</option>
+        </select>
+      </label>
+    </div>
   </div>
-  <p id="peek" class="peek" hidden><b class="blink">！警告！</b> <span id="peek-text"></span></p>
+  <p id="peek" class="peek retro-only" hidden><b class="blink" data-t="peekLabel"></b> <span id="peek-text"></span></p>
     <nav class="tabs" role="tablist" aria-label="診断ツール">
       <button role="tab" data-tab="ip">IP・接続</button>
       <button role="tab" data-tab="browser">ブラウザ</button>
@@ -98,12 +113,13 @@
 
 <div class="kouji" aria-hidden="true"></div>
 <footer class="foot">
-  <p>あなたは <span id="counter" class="counter"></span> 回目のご訪問です</p>
-  <p id="kiriban" class="kiriban" hidden>☆ キリ番ゲット！おめでとうございます ☆</p>
-  <p><span class="banner">NetCheck</span> このページはリンクフリーです</p>
-  <p>Sorry, this page is Japanese only. ／ 推奨環境: 800×600 以上、Internet Explorer 5.5 以上（うそです）</p>
-  <p class="honest">※ 見た目は怪しいですが、表示した情報はどこにも保存していません。IP・接続情報と、DNS・IP・ドメインの検索だけがサーバーを経由します。訪問回数はこのブラウザの中だけで数えています。</p>
-  <p>Copyright (C) 2026 NetCheck All Rights Reserved.</p>
+  <p class="retro-only"><span data-t="counterPre"></span> <span id="counter" class="counter"></span> <span data-t="counterPost"></span></p>
+  <p id="kiriban" class="kiriban retro-only" hidden data-t="kiriban"></p>
+  <p class="retro-only"><span class="banner">NetCheck</span> <span data-t="linkFree"></span></p>
+  <p class="retro-only" data-t="bestViewed"></p>
+  <p class="honest retro-only">※ 見た目は怪しいですが、表示した情報はどこにも保存していません。IP・接続情報と、DNS・IP・ドメインの検索だけがサーバーを経由します。訪問回数はこのブラウザの中だけで数えています。</p>
+  <p class="honest mono-only">表示した情報はどこにも保存していません。IP・接続情報と、DNS・IP・ドメインの検索だけがサーバーを経由します。</p>
+  <p data-t="copyright">© 2026 NetCheck</p>
 </footer>
 </div>
 
