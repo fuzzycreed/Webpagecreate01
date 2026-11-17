@@ -1,6 +1,8 @@
 // NetCheck Worker: /api/info（接続情報）、/api/dns（DNS伝播）、/api/ip（IP検索）、/api/domain（ドメイン検索）
 // 静的ファイルは wrangler.jsonc の assets 設定で public/ から配信される。
 
+import { parseIpRdap, parseDomainRdap } from '../public/rdap.js';
+
 const TYPES = { A: 1, NS: 2, CNAME: 5, SOA: 6, PTR: 12, MX: 15, TXT: 16, AAAA: 28, SRV: 33, CAA: 257 };
 const TYPE_NAMES = Object.fromEntries(Object.entries(TYPES).map(([k, v]) => [v, k]));
 const RCODES = ['NOERROR', 'FORMERR', 'SERVFAIL', 'NXDOMAIN', 'NOTIMP', 'REFUSED'];
@@ -370,20 +372,18 @@ async function ipLookup(params) {
 
 async function lookupIp(ip) {
   const special = specialRange(ip);
+  // geo（所在地）はここでは埋めない。Workers は他の利用者と出口のIPを共有していて、無料の所在地サービスに
+  // 回数制限で断られるため、訪問者のブラウザから直接問い合わせる（public/app.js の geoLookup）
   const out = { ip: ip.text, version: ip.version, special, ptr: [], asn: null, geo: null, rdap: null, errors: {} };
   if (special) return out;
 
   const rev = reversedLabels(ip);
-  const [ptr, origin, rdap, geo] = await Promise.allSettled([
+  const [ptr, origin, rdap] = await Promise.allSettled([
     resolve(`${rev}.${ip.version === 4 ? 'in-addr' : 'ip6'}.arpa`, 'PTR'),
     // Team Cymru のIP→AS番号対応表（DNSで引ける公開サービス）
     resolve(`${rev}.${ip.version === 4 ? 'origin' : 'origin6'}.asn.cymru.com`, 'TXT'),
     rdapFetch(`ip/${ip.text}`),
-    geoLookup(ip.text),
   ]);
-
-  if (geo.status === 'fulfilled') out.geo = geo.value;
-  else out.errors.geo = geo.reason.message;
 
   if (ptr.status === 'fulfilled') out.ptr = ptr.value.answers.filter((a) => a.type === 'PTR').map((a) => a.data);
   else out.errors.ptr = ptr.reason.message;
@@ -404,43 +404,11 @@ async function lookupIp(ip) {
   if (rdap.status === 'fulfilled') {
     const r = rdap.value;
     if (r) {
-      out.rdap = {
-        name: r.name || null,
-        handle: r.handle || null,
-        start: r.startAddress || null,
-        end: r.endAddress || null,
-        cidr: (r.cidr0_cidrs || []).map((c) => `${c.v4prefix || c.v6prefix}/${c.length}`),
-        country: r.country || null,
-        type: r.type || null,
-        parent: r.parentHandle || null,
-        events: rdapEvents(r),
-        entities: rdapEntities(r.entities),
-        remarks: (r.remarks || []).flatMap((m) => m.description || []).slice(0, 8),
-        source: r.port43 || null,
-      };
+      out.rdap = parseIpRdap(r);
     }
   } else out.errors.rdap = rdap.reason.message;
 
   return out;
-}
-
-// IPのおおよその所在地。無料で鍵の要らない ipwho.is を使う（別のサービスに替えるならこの関数だけ直す）
-async function geoLookup(ipText) {
-  const res = await fetch(`https://ipwho.is/${encodeURIComponent(ipText)}`, { signal: AbortSignal.timeout(6000) });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const g = await res.json();
-  if (g.success === false) throw new Error(g.message || 'geo_failed');
-  return {
-    countryCode: g.country_code || null,
-    region: g.region || null,
-    city: g.city || null,
-    postal: g.postal || null,
-    lat: typeof g.latitude === 'number' ? g.latitude : null,
-    lon: typeof g.longitude === 'number' ? g.longitude : null,
-    timezone: g.timezone?.id || null,
-    isp: g.connection?.isp || null,
-    org: g.connection?.org || null,
-  };
 }
 
 // ---------- RDAP ----------
@@ -448,32 +416,14 @@ async function geoLookup(ipText) {
 // rdap.org は、問い合わせ先の正しいレジストリへ転送してくれる公開の振り分けサービス
 async function rdapFetch(path) {
   const res = await fetch(`https://rdap.org/${path}`, {
-    headers: { accept: 'application/rdap+json, application/json' },
+    // Workers の fetch は User-Agent を付けないので明示する（無いと 403 で断るサーバーがある）。
+    // ここで失敗しても、画面側がブラウザから直接問い合わせ直す（public/app.js の enrich*）
+    headers: { accept: 'application/rdap+json, application/json', 'user-agent': 'NetCheck/1.0 (RDAP lookup)' },
     signal: AbortSignal.timeout(8000),
   });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
-}
-
-const rdapEvents = (obj) => Object.fromEntries((obj.events || []).map((e) => [e.eventAction, e.eventDate]));
-
-function rdapEntities(list, depth = 0, out = []) {
-  for (const e of list || []) {
-    const item = { roles: e.roles || [], handle: e.handle || null, name: null, org: null, email: null, tel: null, address: null };
-    for (const [key, vparams, , value] of e.vcardArray?.[1] || []) {
-      if (key === 'fn') item.name = value;
-      else if (key === 'org') item.org = Array.isArray(value) ? value.join(' ') : value;
-      else if (key === 'email') item.email ??= value;
-      else if (key === 'tel') item.tel ??= String(value).replace(/^tel:/, '');
-      else if (key === 'adr') item.address = (vparams?.label || (Array.isArray(value) ? value.flat().filter(Boolean).join(', ') : '')).replace(/\s*\n\s*/g, ', ') || null;
-    }
-    const iana = (e.publicIds || []).find((p) => /iana/i.test(p.type || ''));
-    if (iana) item.ianaId = iana.identifier;
-    out.push(item);
-    if (depth < 2) rdapEntities(e.entities, depth + 1, out);
-  }
-  return out;
 }
 
 // ---------- /api/domain ----------
@@ -524,19 +474,8 @@ async function registrationLookup(candidates) {
     for (const domain of candidates) {
       const r = await rdapFetch(`domain/${domain}`);
       if (!r) continue;
-      const entities = rdapEntities(r.entities);
-      const registrar = entities.find((e) => e.roles.includes('registrar')) || null;
       out.registered = domain;
-      out.rdap = {
-        handle: r.handle || null,
-        status: r.status || [],
-        events: rdapEvents(r),
-        nameservers: (r.nameservers || []).map((n) => (n.ldhName || '').toLowerCase()).filter(Boolean),
-        dnssec: r.secureDNS?.delegationSigned ?? null,
-        registrar: registrar && { name: registrar.name || registrar.org, ianaId: registrar.ianaId || null },
-        entities,
-        source: r.port43 || null,
-      };
+      out.rdap = parseDomainRdap(r);
       return out;
     }
   } catch (e) {

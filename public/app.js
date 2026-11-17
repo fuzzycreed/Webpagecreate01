@@ -2,6 +2,7 @@
 // 表示言語は英語が標準で、ヘッダー右上の Lang プルダウンで切り替える（I18N に言語を足せば増やせる）。
 
 import { I18N } from './i18n.js';
+import { parseIpRdap, parseDomainRdap } from './rdap.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const TABS = ['ip', 'browser', 'fp', 'webrtc', 'dns', 'lookup'];
@@ -765,7 +766,94 @@ function initSearch(tab) {
   });
 }
 
-async function runSearch(tab, api, q, render) {
+// ---------- ブラウザから直接引く情報 ----------
+// サーバー（Cloudflare Workers）は他の利用者と出口のIPを共有しているので、無料の公開サービスに
+// 回数制限（429）や拒否（403）で断られやすい。訪問者のブラウザから直接聞けば、制限は訪問者ごとになる。
+
+async function fetchJson(url) {
+  const res = await fetch(url, { signal: AbortSignal.timeout(7000), referrerPolicy: 'no-referrer' });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+// IPのおおよその所在地。1つ目が断られたら2つ目を試す（どちらも鍵の要らない無料サービス）
+async function geoLookup(ip) {
+  try {
+    const g = await fetchJson(`https://ipwho.is/${encodeURIComponent(ip)}`);
+    if (!g || g.success === false) throw new Error('geo_failed');
+    return {
+      countryCode: g.country_code || null,
+      region: g.region || null,
+      city: g.city || null,
+      lat: typeof g.latitude === 'number' ? g.latitude : null,
+      lon: typeof g.longitude === 'number' ? g.longitude : null,
+      timezone: g.timezone?.id || null,
+      isp: g.connection?.isp || null,
+      org: g.connection?.org || null,
+    };
+  } catch {
+    const g = await fetchJson(`https://ipapi.co/${encodeURIComponent(ip)}/json/`);
+    if (!g || g.error) throw new Error('geo_failed');
+    return {
+      countryCode: g.country_code || null,
+      region: g.region || null,
+      city: g.city || null,
+      lat: typeof g.latitude === 'number' ? g.latitude : null,
+      lon: typeof g.longitude === 'number' ? g.longitude : null,
+      timezone: g.timezone || null,
+      isp: g.org || null,
+      org: null,
+    };
+  }
+}
+
+// IPの結果に所在地を足す。サーバーが登録情報を取れなかったときは、それもブラウザから取り直す
+async function enrichIp(d, { registration = true } = {}) {
+  if (!d || d.special) return;
+  const jobs = [
+    geoLookup(d.ip)
+      .then((geo) => (d.geo = geo))
+      .catch(() => (d.errors.geo = 'geo_failed')),
+  ];
+  if (registration && d.errors.rdap) {
+    jobs.push(
+      fetchJson(`https://rdap.org/ip/${d.ip}`)
+        .then((r) => {
+          if (r) d.rdap = parseIpRdap(r);
+          delete d.errors.rdap;
+        })
+        .catch(() => {}),
+    );
+  }
+  await Promise.all(jobs);
+}
+
+async function enrichDomain(d) {
+  const jobs = [enrichIp(d.ip, { registration: false })];
+  if (!d.rdap && d.errors.rdap) {
+    jobs.push(
+      (async () => {
+        // サーバーと同じく、www.example.co.jp → example.co.jp → co.jp の順に登録元を探す
+        const labels = d.query.split('.');
+        for (let i = 0; labels.length - i >= 2 && i < 4; i++) {
+          const domain = labels.slice(i).join('.');
+          const r = await fetchJson(`https://rdap.org/domain/${domain}`);
+          if (!r) continue;
+          d.rdap = parseDomainRdap(r);
+          d.registered = domain;
+          d.whois = null;
+          break;
+        }
+        delete d.errors.rdap;
+        if (d.rdap) delete d.errors.whois;
+      })().catch(() => {}),
+    );
+  }
+  await Promise.all(jobs);
+}
+
+async function runSearch(tab, api, q, render, enrich) {
   const body = $(`#${tab}-body`);
   const hero = $(`#${tab}-hero`);
   const btn = $(`#${tab}-form button`);
@@ -777,6 +865,7 @@ async function runSearch(tab, api, q, render) {
     const res = await fetch(`${api}?${new URLSearchParams({ q })}`);
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    await enrich(data);
     render(data, hero, body);
   } catch (e) {
     body.replaceChildren(note('bad', errText(e.message)));
@@ -1067,8 +1156,8 @@ const QUERY = {
     const q = (qs.get('q') || '').trim();
     if (!q) return;
     // 入力がIPアドレスの形ならIP検索、それ以外はドメイン検索に振り分ける
-    if (looksLikeIp(q)) runSearch('lookup', '/api/ip', q, renderIp);
-    else runSearch('lookup', '/api/domain', q, renderDomain);
+    if (looksLikeIp(q)) runSearch('lookup', '/api/ip', q, renderIp, enrichIp);
+    else runSearch('lookup', '/api/domain', q, renderDomain, enrichDomain);
   },
 };
 const started = new Set();

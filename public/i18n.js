@@ -20,8 +20,8 @@ export const I18N = {
     'theme.ru': '🇷🇺 Russia (2000s)',
     'theme.cn': '🇨🇳 China (modern)',
     go: 'Check',
-    'foot.honest': 'Nothing shown here is stored anywhere. Only the IP & connection info and the DNS, IP and domain lookups go through the server.',
-    'foot.honestRetro': '* It looks shady, but nothing shown here is stored anywhere. Only the IP & connection info and the DNS, IP and domain lookups go through the server. The visit counter lives only in this browser.',
+    'foot.honest': 'Nothing shown here is stored anywhere. Only the IP & connection info and the DNS, IP and domain lookups go through the server. IP locations are requested by your browser directly from a public service (ipwho.is or ipapi.co), and so are registration records (rdap.org) when the server cannot get them.',
+    'foot.honestRetro': '* It looks shady, but nothing shown here is stored anywhere. Only the IP & connection info and the DNS, IP and domain lookups go through the server. IP locations are requested by your browser directly from a public service (ipwho.is or ipapi.co), and so are registration records (rdap.org) when the server cannot get them. The visit counter lives only in this browser.',
 
     loading: 'Loading…',
     computing: 'Computing…',
@@ -302,8 +302,8 @@ export const I18N = {
     'theme.ru': '🇷🇺 ロシア風（2000年代）',
     'theme.cn': '🇨🇳 中国風（現代）',
     go: '調べる',
-    'foot.honest': '表示した情報はどこにも保存していません。IP・接続情報と、DNS・IP・ドメインの検索だけがサーバーを経由します。',
-    'foot.honestRetro': '※ 見た目は怪しいですが、表示した情報はどこにも保存していません。IP・接続情報と、DNS・IP・ドメインの検索だけがサーバーを経由します。訪問回数はこのブラウザの中だけで数えています。',
+    'foot.honest': '表示した情報はどこにも保存していません。IP・接続情報と、DNS・IP・ドメインの検索だけがサーバーを経由します。IPの所在地は、ブラウザから公開サービス（ipwho.is または ipapi.co）へ直接問い合わせます。サーバーが登録情報を取れなかったときは、登録情報もブラウザから直接（rdap.org へ）問い合わせます。',
+    'foot.honestRetro': '※ 見た目は怪しいですが、表示した情報はどこにも保存していません。IP・接続情報と、DNS・IP・ドメインの検索だけがサーバーを経由します。IPの所在地は、ブラウザから公開サービス（ipwho.is または ipapi.co）へ直接問い合わせます。サーバーが登録情報を取れなかったときは、登録情報もブラウザから直接（rdap.org へ）問い合わせます。訪問回数はこのブラウザの中だけで数えています。',
 
     loading: '取得中…',
     computing: '計算中…',
@@ -584,8 +584,8 @@ export const I18N = {
     'theme.ru': '🇷🇺 Россия (2000-е)',
     'theme.cn': '🇨🇳 Китай (современный)',
     go: 'Проверить',
-    'foot.honest': 'Показанные здесь данные нигде не сохраняются. Через сервер проходят только сведения об IP и соединении, а также запросы DNS, IP и доменов.',
-    'foot.honestRetro': '* Выглядит подозрительно, но показанные здесь данные нигде не сохраняются. Через сервер проходят только сведения об IP и соединении, а также запросы DNS, IP и доменов. Счётчик посещений хранится только в этом браузере.',
+    'foot.honest': 'Показанные здесь данные нигде не сохраняются. Через сервер проходят только сведения об IP и соединении, а также запросы DNS, IP и доменов. Местоположение IP ваш браузер запрашивает напрямую у публичного сервиса (ipwho.is или ipapi.co); так же запрашиваются регистрационные данные (rdap.org), если сервер не смог их получить.',
+    'foot.honestRetro': '* Выглядит подозрительно, но показанные здесь данные нигде не сохраняются. Через сервер проходят только сведения об IP и соединении, а также запросы DNS, IP и доменов. Местоположение IP ваш браузер запрашивает напрямую у публичного сервиса (ipwho.is или ipapi.co); так же запрашиваются регистрационные данные (rdap.org), если сервер не смог их получить. Счётчик посещений хранится только в этом браузере.',
 
     loading: 'Загрузка…',
     computing: 'Вычисление…',
@@ -866,8 +866,8 @@ export const I18N = {
     'theme.ru': '🇷🇺 俄罗斯风（2000 年代）',
     'theme.cn': '🇨🇳 中国风（现代）',
     go: '查询',
-    'foot.honest': '这里显示的信息不会保存在任何地方。只有 IP 与连接信息，以及 DNS、IP、域名查询会经过服务器。',
-    'foot.honestRetro': '※ 看起来很可疑，但这里显示的信息不会保存在任何地方。只有 IP 与连接信息，以及 DNS、IP、域名查询会经过服务器。访问次数只记录在本浏览器中。',
+    'foot.honest': '这里显示的信息不会保存在任何地方。只有 IP 与连接信息，以及 DNS、IP、域名查询会经过服务器。IP 所在地由您的浏览器直接向公共服务（ipwho.is 或 ipapi.co）查询；当服务器无法获取注册信息时，注册信息也会由浏览器直接向 rdap.org 查询。',
+    'foot.honestRetro': '※ 看起来很可疑，但这里显示的信息不会保存在任何地方。只有 IP 与连接信息，以及 DNS、IP、域名查询会经过服务器。IP 所在地由您的浏览器直接向公共服务（ipwho.is 或 ipapi.co）查询；当服务器无法获取注册信息时，注册信息也会由浏览器直接向 rdap.org 查询。访问次数只记录在本浏览器中。',
 
     loading: '加载中…',
     computing: '计算中…',

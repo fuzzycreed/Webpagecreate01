@@ -17,7 +17,7 @@ npm run deploy   # 初回は wrangler login が必要
 - `src/index.js` — API
   - `GET /api/info` — 接続元IP、位置、ASN、TLSなど
   - `GET /api/dns?name=example.com&type=A[&ecs=203.0.113.0/24]` — 公開DoHリゾルバーと地域別（EDNS Client Subnet）の問い合わせ結果
-  - `GET /api/ip?q=8.8.8.8` — 逆引き、AS番号（Team Cymru）、ネットワークの登録情報（RDAP）
+  - `GET /api/ip?q=8.8.8.8` — 逆引き、AS番号（Team Cymru）、ネットワークの登録情報（RDAP）。所在地は返さない（下の「ブラウザから直接引く情報」を参照）
   - `GET /api/domain?q=example.com` — 登録情報（RDAP。未対応のTLDはWHOISで補う）と現在のDNSレコード
 
 「IP・ドメイン検索」タブは入力欄が1つで、IPアドレスの形なら `/api/ip`、それ以外は `/api/domain` を呼ぶ。
@@ -50,3 +50,13 @@ npm run deploy   # 初回は wrangler login が必要
 画面幅で3段階に変わる（`public/style.css` の「レイアウトは3段階」のコメント以下）。
 スマホ（〜640px）は1列でタブはプルダウン、中間（641〜959px）は1列でタブは上に横並び、
 PC（960px〜）は左に縦メニュー・右に本文で、本文の中は2列に並べられるところを並べる。
+
+## ブラウザから直接引く情報
+
+Workers は他の利用者と出口のIPを共有しているため、無料の公開サービスに回数制限（429）や拒否（403）で断られやすい。
+そこで次の2つは、訪問者のブラウザから直接問い合わせる（`public/app.js` の `geoLookup` / `enrichIp` / `enrichDomain`）。
+
+- IPの所在地：ipwho.is、断られたら ipapi.co
+- 登録情報（RDAP）：まずサーバーが rdap.org に聞き、失敗したときだけブラウザが rdap.org に聞き直す
+
+RDAPの応答を整える処理は `public/rdap.js` にあり、サーバーとブラウザの両方が読み込む。
