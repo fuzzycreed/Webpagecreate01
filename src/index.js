@@ -67,8 +67,10 @@ const LOCATIONS = [
 ];
 
 export default {
-  async fetch(request) {
+  async fetch(request, env) {
     const url = new URL(request.url);
+    const limited = await rateLimit(request, env, url.pathname);
+    if (limited) return limited;
     // エラーは短いコード（bad_name など）で返し、画面側が表示言語に合わせて文言にする
     try {
       if (url.pathname === '/api/info') return json(await info(request));
@@ -84,6 +86,29 @@ export default {
     return new Response('Not found', { status: 404 });
   },
 };
+
+// 回数制限。どの経路にどの制限をかけるかの対応表（制限の中身は wrangler.jsonc の ratelimits）
+const RATE_LIMITS = {
+  '/api/dns': 'LIMIT_LOOKUP',
+  '/api/ip': 'LIMIT_LOOKUP',
+  '/api/domain': 'LIMIT_LOOKUP',
+  '/api/certs': 'LIMIT_LOOKUP',
+  '/api/ports': 'LIMIT_PROBE',
+  '/api/http': 'LIMIT_PROBE',
+};
+
+// 上限を超えていたら 429 の応答を返す。超えていなければ null
+async function rateLimit(request, env, pathname) {
+  const limiter = env?.[RATE_LIMITS[pathname]];
+  if (!limiter) return null; // 対象外の経路か、制限の設定が無い環境
+  const key = request.headers.get('cf-connecting-ip') || 'unknown';
+  const { success } = await limiter.limit({ key });
+  if (success) return null;
+  return new Response(JSON.stringify({ error: 'rate_limited' }), {
+    status: 429,
+    headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', 'retry-after': '60' },
+  });
+}
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {

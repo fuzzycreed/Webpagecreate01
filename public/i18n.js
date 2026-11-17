@@ -329,6 +329,7 @@ export const I18N = {
     'err.bad_url': 'Enter a valid http:// or https:// URL.',
     'err.self': 'This site’s own address cannot be checked.',
 
+    'err.rate_limited': 'Too many requests. Wait about a minute and try again.',
     'err.bad_type': 'Unsupported record type.',
     'err.name_required': 'Enter a domain name.',
     'err.bad_name': 'That is not a valid domain name.',
@@ -668,6 +669,7 @@ export const I18N = {
     'err.bad_url': 'http:// または https:// で始まるURLを正しく入力してください。',
     'err.self': 'このサイト自身のアドレスは調べられません。',
 
+    'err.rate_limited': 'リクエストが多すぎます。1分ほど待ってから、もう一度試してください。',
     'err.bad_type': '未対応のレコードタイプです。',
     'err.name_required': 'ドメイン名を入力してください。',
     'err.bad_name': 'ドメイン名の形式が正しくありません。',
@@ -1007,6 +1009,7 @@ export const I18N = {
     'err.bad_url': 'Введите корректный URL, начинающийся с http:// или https://.',
     'err.self': 'Адрес самого этого сайта проверять нельзя.',
 
+    'err.rate_limited': 'Слишком много запросов. Подождите около минуты и попробуйте снова.',
     'err.bad_type': 'Неподдерживаемый тип записи.',
     'err.name_required': 'Введите доменное имя.',
     'err.bad_name': 'Некорректное доменное имя.',
@@ -1346,6 +1349,7 @@ export const I18N = {
     'err.bad_url': '请输入以 http:// 或 https:// 开头的有效 URL。',
     'err.self': '无法检测本站自身的地址。',
 
+    'err.rate_limited': '请求过于频繁，请等待约一分钟后再试。',
     'err.bad_type': '不支持的记录类型。',
     'err.name_required': '请输入域名。',
     'err.bad_name': '域名格式不正确。',

@@ -72,4 +72,16 @@ RDAPの応答を整える処理は `public/rdap.js` にあり、サーバーと�
 
 ポートチェックとHTTPヘッダー確認は、踏み台にされにくいよう次の制限を入れている（`src/index.js` の `assertPublicHost` ほか）。
 プライベートアドレスやループバックなどは断る。ポートは1回12個まで、転送は8回まで。このサイト自身のアドレスは調べない。
-公開後に悪用が目立つようなら、Cloudflare の Turnstile や回数制限を足すこと。
+
+## 回数制限
+
+訪問者のIPごとに、1分あたりの回数を制限している。超えると 429（`rate_limited`）を返し、画面には「1分ほど待って」と出る。
+
+| 制限 | 対象 | 上限 |
+|---|---|---|
+| `LIMIT_LOOKUP` | `/api/dns` `/api/ip` `/api/domain` `/api/certs` | 1分に30回 |
+| `LIMIT_PROBE` | `/api/ports` `/api/http` | 1分に10回 |
+
+上限は `wrangler.jsonc` の `ratelimits`、どの経路にどの制限をかけるかは `src/index.js` の `RATE_LIMITS` で決まる。
+`/api/info` とページ本体には制限をかけていない。数え方は Cloudflare の拠点ごとで、多少の誤差がある。
+それでも悪用が目立つようなら、Cloudflare の Turnstile（人間確認）を足すこと。

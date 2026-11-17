@@ -3,5 +3,14 @@
   "main": "src/index.js",
   "compatibility_date": "2026-06-01",
   // public/ の静的ファイルを配信し、該当ファイルが無いパス（/api/*）だけ Worker が処理する
-  "assets": { "directory": "./public" }
+  "assets": { "directory": "./public" },
+  // 回数制限（訪問者のIPごと。数え方は Cloudflare の拠点ごとで、多少の誤差がある）。
+  // period は 10 か 60（秒）のみ。namespace_id はアカウント内で重複しない任意の番号。
+  // 上限を変えるときは limit を書き換えて再デプロイする。
+  "ratelimits": [
+    // 検索系（DNS伝播、IP・ドメイン検索、証明書）：1分に30回まで
+    { "name": "LIMIT_LOOKUP", "namespace_id": "1001", "simple": { "limit": 30, "period": 60 } },
+    // 外部のサーバーへ接続しに行く機能（ポートチェック、HTTPヘッダー）：1分に10回まで
+    { "name": "LIMIT_PROBE", "namespace_id": "1002", "simple": { "limit": 10, "period": 60 } }
+  ]
 }
