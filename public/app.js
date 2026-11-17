@@ -1232,6 +1232,19 @@ const THEMES = {
     bestViewed: 'Сайт оптимизирован под Internet Explorer 5.5, разрешение 800×600 (шутка)',
     copyright: 'Copyright © 2026 NetCheck. Все права защищены.',
   },
+  // とても怪しいロシアのサイト風：黒地に蛍光緑、偽のダウンロードボタンと警告（どれも冗談と明記）
+  ru2: {
+    marquee: '☠☠☠ СКАЧАТЬ БЕСПЛАТНО БЕЗ СМС И РЕГИСТРАЦИИ ☠☠☠ ВЗЛОМ ИНТЕРНЕТА 2026 ☠☠☠ ТВОЙ IP УЖЕ У НАС (на самом деле нет) ☠☠☠ КРЯКИ · КЕЙГЕНЫ · СЕРИЙНИКИ (их тут нет) ☠☠☠',
+    tagline: '[ WAREZ · ВЗЛОМ · СОФТ ] — мы видим тебя, %username%',
+    peekLabel: '!!! ТРЕВОГА !!!',
+    peek: (ip, detail) => `Твой IP ${ip}${detail ? ` (${detail})` : ''} ЗАСВЕЧЕН!!! Срочно скачай защиту (шутка, ничего не качай)`,
+    counterPre: 'Ты заходил сюда уже',
+    counterPost: 'раз, хакер',
+    kiriban: '☠ Красивое число! Ты избранный! ☠',
+    linkFree: 'Наша кнопка — вешай на свой сайт!',
+    bestViewed: 'Оптимизировано под Internet Explorer 6 и Windows XP SP2 (пиратскую) :: Все файлы проверены антивирусом (файлов нет)',
+    copyright: '© 2026 NetCheck WAREZ TEAM. Все права взломаны.',
+  },
   // 現代の怪しいサイト風：偽の「利用者の声」が流れ、当選バナーや丸い広告ボタンが浮く（どれも冗談と明記）
   cn: {
     marquee: '📢 用户 138****5521 刚刚查询了自己的IP　·　用户 186****0937 刚刚完成了指纹检测　·　用户 159****7742 领取了新人红包（并没有红包）　·　已有 9,999,999+ 用户信赖本站（数字是编的）',
@@ -1282,6 +1295,19 @@ const THEMES = {
     bestViewed: 'Best viewed on a 14-inch telly, or Internet Explorer 5.5 at 800×600 (only joking)',
     copyright: 'Copyright © 2026 NetCheck. All rights reserved.',
   },
+  // とても堅いイングランドのサイト風：白黒、セリフ体、動きなし、回りくどい公用文
+  gb2: {
+    marquee: 'NOTICE TO VISITORS — Your Internet Protocol address, browser particulars, screen dimensions and installed typefaces are disclosed to this page in the ordinary course of its operation. Visitors are respectfully reminded to conduct themselves accordingly.',
+    tagline: 'Diagnostics of Connection, Browser and Domain Name System — Established 2026',
+    peekLabel: 'NOTICE.',
+    peek: (ip, detail) => `It is hereby recorded that Internet Protocol address ${ip}${detail ? ` (${detail})` : ''} is visible to this service.`,
+    counterPre: 'This page has been consulted on',
+    counterPost: 'occasions',
+    kiriban: 'The Management observes, without undue excitement, that a notable number has been reached.',
+    linkFree: 'Requests for reciprocal hyperlinks should be submitted in writing',
+    bestViewed: 'Visitors are kindly requested to form an orderly queue. No ball games. Terms and Conditions apply (there are none).',
+    copyright: '© 2026 NetCheck. All rights reserved. Registered in no jurisdiction whatsoever.',
+  },
 };
 
 // ---------- 日本風・中国風だけの動く飾り ----------
@@ -1298,6 +1324,7 @@ function themeEffects(name) {
   stopEffects = () => {};
   if (name === 'jp') stopEffects = jpEffects();
   if (name === 'cn') stopEffects = cnEffects();
+  if (name === 'ru2') stopEffects = ru2Effects();
 }
 
 // 日本風：マウスを追いかける星と、TOPへ戻るボタン
@@ -1320,6 +1347,63 @@ function jpEffects() {
     removeEventListener('pointermove', onMove);
     $('#jp-top').removeEventListener('click', toTop);
     layer.replaceChildren();
+  };
+}
+
+// ロシア（とても怪しい）：でたらめな「オンライン人数」、偽のミニチャット、偽のウイルス警告（1回の訪問につき1度）
+function ru2Effects() {
+  const alertBox = $('#ru2-alert');
+  const chat = $('#ru2-chat');
+  const timers = [];
+  const close = () => {
+    alertBox.hidden = true;
+    toast('Шутка. Вирусов нет :)');
+  };
+  const closers = [$('#ru2-alert-x'), ...document.querySelectorAll('[data-ru2-close]')];
+  closers.forEach((b) => b.addEventListener('click', close));
+
+  let shown = false;
+  try {
+    shown = sessionStorage.getItem('netcheck-ru2-alert') === '1';
+  } catch {}
+  if (!shown) {
+    timers.push(
+      setTimeout(() => {
+        alertBox.hidden = false;
+        try {
+          sessionStorage.setItem('netcheck-ru2-alert', '1');
+        } catch {}
+      }, 1500),
+    );
+  }
+
+  let online = 1337;
+  timers.push(
+    setInterval(() => {
+      online = Math.max(1000, online + Math.floor(Math.random() * 41) - 20);
+      $('#ru2-online').textContent = online;
+    }, 1800),
+  );
+
+  const NICKS = ['xXx_HaCkEr_xXx', 'Vasya1999', 'DarkLord', 'admin', 'Kotik_777', 'L33T'];
+  const LINES = ['админ, залей ещё', 'кряк не работает!!!', 'спасибо, всё скачалось (нет)', 'первый нах', 'где ссылка???', 'сайт супер, добавил в закладки', 'у кого есть серийник?'];
+  const pick = (list) => list[Math.floor(Math.random() * list.length)];
+  const say = () => {
+    chat.append(el('div', {}, el('b', {}, `${pick(NICKS)}: `), pick(LINES)));
+    while (chat.children.length > 5) chat.firstChild.remove();
+  };
+  say();
+  say();
+  timers.push(setInterval(say, 3500));
+
+  return () => {
+    timers.forEach((id) => {
+      clearTimeout(id);
+      clearInterval(id);
+    });
+    closers.forEach((b) => b.removeEventListener('click', close));
+    alertBox.hidden = true;
+    chat.replaceChildren();
   };
 }
 

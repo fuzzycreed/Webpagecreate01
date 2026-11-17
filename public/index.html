@@ -45,15 +45,22 @@ try { document.documentElement.dataset.theme = localStorage.getItem('netcheck-th
           <option value="jp" data-i18n="theme.jp">🇯🇵 Japan (2000s)</option>
           <option value="us" data-i18n="theme.us">🇺🇸 USA (1990s)</option>
           <option value="ru" data-i18n="theme.ru">🇷🇺 Russia (2000s)</option>
+          <option value="ru2" data-i18n="theme.ru2">🇷🇺 Russia (very shady)</option>
           <option value="cn" data-i18n="theme.cn">🇨🇳 China (modern)</option>
           <option value="it" data-i18n="theme.it">🇮🇹 Italy (2000s)</option>
           <option value="de" data-i18n="theme.de">🇩🇪 Germany (2000s)</option>
           <option value="gb" data-i18n="theme.gb">🏴󠁧󠁢󠁥󠁮󠁧󠁿 England (teletext)</option>
+          <option value="gb2" data-i18n="theme.gb2">🏴󠁧󠁢󠁥󠁮󠁧󠁿 England (very formal)</option>
         </select>
       </label>
     </div>
   </div>
   <p id="peek" class="peek retro-only" hidden><b class="blink" data-t="peekLabel"></b> <span id="peek-text"></span></p>
+  <div class="ru2-ads ru2-only">
+    <button type="button" class="ru2-ad a1" data-joke="Шутка. Здесь нечего скачивать">⬇ СКАЧАТЬ БЕСПЛАТНО ⬇<br><small>без смс и регистрации</small></button>
+    <button type="button" class="ru2-ad a2" data-joke="Шутка. Казино не существует">🎰 КАЗИНО 777 🎰<br><small>бонус 100500% (казино нет)</small></button>
+    <button type="button" class="ru2-ad a3" data-joke="Шутка. Врачи спокойны">ПОХУДЕЙ ЗА 3 ДНЯ!<br><small>врачи в шоке (шутка)</small></button>
+  </div>
   <div class="jp-ads jp-only">
     <button type="button" class="jp-ad a1" data-joke="このバナーは飾りです。押しても何も起きません">【PR】無料ホームページ 容量100MB！ ＣＧＩ・掲示板つき <b>今すぐ登録</b></button>
     <button type="button" class="jp-ad a2" data-joke="このバナーは飾りです。着メロはありません">★☆ 着メロ・待受 取り放題 ☆★ <b>ここをクリック！</b></button>
@@ -92,6 +99,14 @@ try { document.documentElement.dataset.theme = localStorage.getItem('netcheck-th
     <p class="jp-box"><b>■ 更新履歴</b><br><span class="jp-new">NEW!</span> 11/17 ポートチェック設置<br>11/16 サイト開設<br>掲示板は工事中です</p>
     <button type="button" class="jp-rank" data-joke="ランキングには参加していません。押しても何も起きません">★ ランキング参加中 ★<br>１日１クリックお願いします</button>
     <p class="jp-box">相互リンク募集中！<br>直リンクはご遠慮ください<br><span class="jp-new">キリ番</span> 報告は掲示板へ</p>
+  </div>
+  <div class="side-extra ru2-only">
+    <p class="ru2-box">☠ Сейчас на сайте: <b id="ru2-online">1337</b><br><small>(число выдумано)</small></p>
+    <button type="button" class="ru2-dl" data-joke="Шутка. Файла нет">⬇ СКАЧАТЬ</button>
+    <button type="button" class="ru2-dl alt" data-joke="Шутка. Торрента нет">⬇ СКАЧАТЬ ТОРРЕНТ</button>
+    <button type="button" class="ru2-dl alt2" data-joke="Шутка. Зеркала нет">⬇ ЗЕРКАЛО №2</button>
+    <div class="ru2-box"><b>Мини-чат</b><div id="ru2-chat" class="ru2-chat"></div><small>(сообщения выдуманы)</small></div>
+    <p class="ru2-box">КРЯКИ · КЕЙГЕНЫ · СЕРИЙНИКИ<br><small>(ничего этого здесь нет)</small></p>
   </div>
   <div class="side-extra cn-only">
     <div class="cn-hot">
@@ -235,6 +250,12 @@ try { document.documentElement.dataset.theme = localStorage.getItem('netcheck-th
     <button type="button" class="cn-modal-btn" id="cn-modal-btn">立即领取</button>
     <p class="cn-small">（开玩笑的，没有礼包，关掉就好）</p>
   </div>
+</div>
+<div class="ru2-alert ru2-only" id="ru2-alert" hidden role="dialog" aria-label="Шутка">
+  <div class="ru2-alert-title">Системное сообщение <button type="button" id="ru2-alert-x" aria-label="Close">×</button></div>
+  <p>⚠ Обнаружено вирусов: <b>13</b>. Удалить?</p>
+  <p class="ru2-alert-btns"><button type="button" data-ru2-close>Да</button> <button type="button" data-ru2-close>Нет</button></p>
+  <p class="ru2-small">(шутка — вирусов нет, проверка не проводилась)</p>
 </div>
 <button type="button" class="jp-top jp-only" id="jp-top">▲<br>TOP</button>
 <div class="jp-trail jp-only" id="jp-trail" aria-hidden="true"></div>
