@@ -100,7 +100,7 @@ function info(request) {
     ipVersion: ip.includes(':') ? 6 : ip ? 4 : null,
     geo: pick('country', 'isEUCountry', 'continent', 'region', 'regionCode', 'city', 'postalCode', 'latitude', 'longitude', 'timezone'),
     network: pick('asn', 'asOrganization', 'colo'),
-    connection: pick('httpProtocol', 'tlsVersion', 'tlsCipher', 'clientTcpRtt', 'clientAcceptEncoding'),
+    connection: pick('httpProtocol', 'tlsVersion', 'tlsCipher', 'clientTcpRtt', 'clientQuicRtt', 'clientAcceptEncoding'),
     headers: [...h.entries()].map(([name, value]) => ({ name, value })),
   };
 }

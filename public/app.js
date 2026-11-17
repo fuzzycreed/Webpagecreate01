@@ -97,10 +97,14 @@ async function sha256(input) {
 // /api/info は IP タブと WebRTC タブの両方で使うので一度だけ取得する
 let infoPromise;
 function getInfo() {
-  infoPromise ??= fetch('/api/info').then((r) => {
+  infoPromise ??= (async () => {
+    const started = performance.now();
+    const r = await fetch('/api/info');
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    return r.json();
-  });
+    const data = await r.json();
+    data.measuredMs = Math.round(performance.now() - started); // ブラウザ側で測った、問い合わせ1回の所要時間
+    return data;
+  })();
   infoPromise.catch(() => (infoPromise = undefined));
   return infoPromise;
 }
@@ -248,7 +252,9 @@ async function initIp() {
             [t('ip.http'), connection.httpProtocol],
             [t('ip.tls'), connection.tlsVersion],
             [t('ip.cipher'), connection.tlsCipher],
-            [t('ip.rtt'), connection.clientTcpRtt ? `${connection.clientTcpRtt} ms` : null],
+    // Cloudflareが測った往復時間。HTTP/3（QUIC）の接続にはTCPが無いので、QUIC側の値を使う
+            [t('ip.rtt'), connection.clientTcpRtt ? `${connection.clientTcpRtt} ms (TCP)` : connection.clientQuicRtt ? `${connection.clientQuicRtt} ms (QUIC)` : null],
+            [t('ip.latency'), `${info.measuredMs} ms`],
             [t('ip.encodings'), connection.clientAcceptEncoding],
           ]),
         ),
