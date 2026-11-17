@@ -22,6 +22,8 @@ try { document.documentElement.dataset.theme = localStorage.getItem('netcheck-th
         <select id="lang-select">
           <option value="en">English</option>
           <option value="ja">日本語</option>
+          <option value="ru">Русский</option>
+          <option value="zh">中文</option>
         </select>
       </label>
     </div>
@@ -40,14 +42,6 @@ try { document.documentElement.dataset.theme = localStorage.getItem('netcheck-th
     </div>
   </div>
   <p id="peek" class="peek retro-only" hidden><b class="blink" data-t="peekLabel"></b> <span id="peek-text"></span></p>
-  <nav class="tabs" role="tablist" data-i18n-aria="tabs.aria" aria-label="Tools">
-    <button role="tab" data-tab="ip" data-i18n="tab.ip">IP &amp; Connection</button>
-    <button role="tab" data-tab="browser" data-i18n="tab.browser">Browser</button>
-    <button role="tab" data-tab="fp" data-i18n="tab.fp">Fingerprint</button>
-    <button role="tab" data-tab="webrtc" data-i18n="tab.webrtc">WebRTC</button>
-    <button role="tab" data-tab="dns" data-i18n="tab.dns">DNS Propagation</button>
-    <button role="tab" data-tab="lookup" data-i18n="tab.lookup">IP / Domain Lookup</button>
-  </nav>
   <select class="tab-select" data-i18n-aria="tabs.aria" aria-label="Tools">
     <option value="ip" data-i18n="tab.ip">IP &amp; Connection</option>
     <option value="browser" data-i18n="tab.browser">Browser</option>
@@ -59,6 +53,15 @@ try { document.documentElement.dataset.theme = localStorage.getItem('netcheck-th
 </header>
 <div class="kouji" aria-hidden="true"></div>
 
+<div class="layout">
+  <nav class="tabs" role="tablist" data-i18n-aria="tabs.aria" aria-label="Tools">
+    <button role="tab" data-tab="ip" data-i18n="tab.ip">IP &amp; Connection</button>
+    <button role="tab" data-tab="browser" data-i18n="tab.browser">Browser</button>
+    <button role="tab" data-tab="fp" data-i18n="tab.fp">Fingerprint</button>
+    <button role="tab" data-tab="webrtc" data-i18n="tab.webrtc">WebRTC</button>
+    <button role="tab" data-tab="dns" data-i18n="tab.dns">DNS Propagation</button>
+    <button role="tab" data-tab="lookup" data-i18n="tab.lookup">IP / Domain Lookup</button>
+  </nav>
 <main>
   <section data-panel="ip" hidden>
     <h1 data-i18n="h.ip">IP &amp; Connection</h1>
@@ -119,6 +122,7 @@ try { document.documentElement.dataset.theme = localStorage.getItem('netcheck-th
     <div id="lookup-body"></div>
   </section>
 </main>
+</div>
 
 <div class="kouji" aria-hidden="true"></div>
 <footer class="foot">

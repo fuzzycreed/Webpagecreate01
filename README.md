@@ -27,8 +27,8 @@ npm run deploy   # 初回は wrangler login が必要
 
 ## 表示言語
 
-標準は英語。ヘッダー右上の Lang プルダウンで日本語に切り替えられる（選択はブラウザに保存）。
-文言は `public/app.js` の `I18N` にまとめてあり、同じキーで言語を足せば選択肢を増やせる
+標準は英語。ヘッダー右上の Lang プルダウンで日本語・ロシア語・中国語に切り替えられる（選択はブラウザに保存）。
+文言は `public/i18n.js` の `I18N` にまとめてあり、同じキーで言語を足せば選択肢を増やせる
 （`public/index.html` の `#lang-select` にも `<option>` を足す）。
 サーバーはエラーを `bad_name` のようなコードで返し、画面側が表示言語の文言にする。
 
@@ -38,3 +38,15 @@ npm run deploy   # 初回は wrangler login が必要
 日本風（平成）・アメリカ風（90年代）・ロシア風（2000年代）・中国風（現代）の「怪しいサイト」に切り替えられる
 （選択はブラウザに保存）。配色は `public/style.css` 冒頭のテーマ別の変数、飾りの文言は `public/app.js` の `THEMES` で決まる。
 隠しテーマの飾りの文言はその国の言語で固定で、診断結果の表示だけが Lang の設定に従う。
+
+## 地図
+
+- IPの位置：Leaflet（`public/vendor/leaflet/` に同梱）と OpenStreetMap のタイルで表示する。出典表記は「© OpenStreetMap contributors」のみ。
+- DNS伝播：`public/world-110m.json`（Natural Earth 由来の国境の線画）に、地域別の結果を印で置く。
+  印の位置は `src/index.js` の `LOCATIONS` の緯度・経度。線画は `tools/build-world-map.cjs` で作り直せる。
+
+## レイアウト
+
+画面幅で3段階に変わる（`public/style.css` の「レイアウトは3段階」のコメント以下）。
+スマホ（〜640px）は1列でタブはプルダウン、中間（641〜959px）は1列でタブは上に横並び、
+PC（960px〜）は左に縦メニュー・右に本文で、本文の中は2列に並べられるところを並べる。

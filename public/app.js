@@ -1,6 +1,8 @@
 // NetCheck フロントエンド。タブ（狭い画面ではプルダウン）で各診断を切り替える。
 // 表示言語は英語が標準で、ヘッダー右上の Lang プルダウンで切り替える（I18N に言語を足せば増やせる）。
 
+import { I18N } from './i18n.js';
+
 const $ = (sel, root = document) => root.querySelector(sel);
 const TABS = ['ip', 'browser', 'fp', 'webrtc', 'dns', 'lookup'];
 
@@ -20,570 +22,6 @@ const store = {
 };
 
 // ---------- 文言 ----------
-
-const I18N = {
-  en: {
-    locale: 'en-US',
-    docTitle: 'NetCheck — Connection, Browser & DNS Checks',
-    tagline: 'Connection · Browser · DNS diagnostics',
-    'tabs.aria': 'Tools',
-    'tab.ip': 'IP & Connection',
-    'tab.browser': 'Browser',
-    'tab.fp': 'Fingerprint',
-    'tab.webrtc': 'WebRTC',
-    'tab.dns': 'DNS Propagation',
-    'tab.lookup': 'IP / Domain Lookup',
-    'theme.label': 'Theme:',
-    'theme.mono': 'White / Gray (default)',
-    'theme.jp': '🇯🇵 Japan (2000s)',
-    'theme.us': '🇺🇸 USA (1990s)',
-    'theme.ru': '🇷🇺 Russia (2000s)',
-    'theme.cn': '🇨🇳 China (modern)',
-    go: 'Check',
-    'foot.honest': 'Nothing shown here is stored anywhere. Only the IP & connection info and the DNS, IP and domain lookups go through the server.',
-    'foot.honestRetro': '* It looks shady, but nothing shown here is stored anywhere. Only the IP & connection info and the DNS, IP and domain lookups go through the server. The visit counter lives only in this browser.',
-
-    loading: 'Loading…',
-    computing: 'Computing…',
-    searching: 'Searching…',
-    querying: 'Querying…',
-    none: 'None',
-    yes: 'Yes',
-    no: 'No',
-    listSep: ', ',
-    paren: (s) => ` (${s})`,
-
-    'h.ip': 'IP & Connection',
-    'lead.ip': "What this site's server can see about your connection.",
-    'ip.fail': (m) => `Could not load connection info (${m})`,
-    'ip.address': 'IP address',
-    'ip.location': 'Location (estimated)',
-    'ip.provider': 'Provider',
-    'ip.transport': 'Transport',
-    'ip.tzMismatch': (a, b) => `The time zone estimated from your IP (${a}) differs from your browser's time zone (${b}). With a VPN or proxy, websites can see this mismatch.`,
-    'ip.lookupOwn': 'Look up registration details for this IP →',
-    'ip.secGeo': 'Location (estimated from IP)',
-    'ip.country': 'Country',
-    'ip.eu': ' (EU)',
-    'ip.region': 'Region',
-    'ip.city': 'City',
-    'ip.postal': 'Postal code',
-    'ip.coords': 'Coordinates',
-    'ip.timezone': 'Time zone',
-    'ip.continent': 'Continent',
-    'ip.secMap': 'Your location (estimated from IP)',
-    'ip.secNetwork': 'Network',
-    'ip.asn': 'AS number',
-    'ip.operator': 'Operator',
-    'ip.colo': 'Cloudflare data center',
-    'ip.secConn': 'Connection',
-    'ip.http': 'HTTP version',
-    'ip.tls': 'TLS version',
-    'ip.cipher': 'Cipher suite',
-    'ip.rtt': 'TCP round-trip time',
-    'ip.encodings': 'Accepted encodings',
-    'ip.secHeaders': 'Request headers',
-    mapTitle: 'Map',
-
-    'h.browser': 'Browser',
-    'lead.browser': 'What a website can read about your browser and device with JavaScript.',
-    'br.secBrowser': 'Browser',
-    'br.ua': 'User agent',
-    'br.brands': 'Brands and versions',
-    'br.os': 'OS',
-    'br.cpu': 'CPU architecture',
-    'br.model': 'Model',
-    'br.platform': 'Platform',
-    'br.vendor': 'Vendor',
-    'br.languages': 'Languages',
-    'br.cookie': 'Cookies enabled',
-    'br.on': 'On',
-    'br.off': 'Off',
-    'br.unset': 'Not set',
-    'br.unsupported': 'Not supported',
-    'br.webdriver': 'Automated (webdriver)',
-    'br.pdf': 'Built-in PDF viewer',
-    'br.plugins': 'Plugins',
-    'br.secDevice': 'Device',
-    'br.cores': 'Logical CPU cores',
-    'br.memory': 'Memory (approx.)',
-    'br.memoryVal': (n) => `${n} GB or more`,
-    'br.touch': 'Touch points',
-    'br.storage': 'Available storage (approx.)',
-    'br.netType': 'Connection type',
-    'br.saveData': 'Data saver',
-    'br.secScreen': 'Screen',
-    'br.res': 'Screen resolution',
-    'br.avail': 'Available area',
-    'br.viewport': 'Viewport',
-    'br.dpr': 'Pixel ratio',
-    'br.depth': 'Color depth',
-    'br.orientation': 'Orientation',
-    'br.scheme': 'Color scheme',
-    'br.dark': 'Dark',
-    'br.light': 'Light',
-    'br.reducedMotion': 'Reduced motion',
-    'br.p3': 'Wide gamut (P3)',
-    'br.pointer': 'Primary input',
-    'br.pTouch': 'Touch',
-    'br.pMouse': 'Mouse',
-    'br.pNone': 'None',
-    'br.secLocale': 'Region and time',
-    'br.locale': 'Locale',
-    'br.calendar': 'Calendar',
-    'br.numbering': 'Numbering system',
-    'br.now': 'Current time',
-
-    'h.fp': 'Fingerprint',
-    'lead.fp': 'Values that can tell your device apart without cookies. Everything is computed in your browser and sent nowhere.',
-    'fp.id': 'Device ID',
-    'fp.idSub': 'All values below combined',
-    'fp.intro': 'On the same device and browser, this ID usually stays the same even if you clear cookies or use a private window. If it changes every time, your browser’s fingerprinting protection is working.',
-    'fp.hash': 'Hash',
-    'fp.unavailable': 'Unavailable',
-    'fp.rendering': 'Rendering',
-    'fp.gpuVendor': 'GPU vendor',
-    'fp.version': 'Version',
-    'fp.shading': 'Shading language',
-    'fp.maxTex': 'Max texture size',
-    'fp.maxView': 'Max viewport',
-    'fp.extCount': 'Extensions',
-    'fp.noWebgl': 'WebGL is unavailable or disabled.',
-    'fp.value': 'Computed value',
-    'fp.noAudio': 'Could not compute an audio fingerprint.',
-    'fp.fonts': (total, n) => `Fonts (${n} of ${total} candidates detected)`,
-    'fp.noFonts': 'None detected',
-
-    'h.webrtc': 'WebRTC Leak Test',
-    'lead.webrtc': 'Checks which IP addresses are visible through WebRTC. If you use a VPN and your real IP shows up here, it is leaking.',
-    'webrtc.rerun': 'Run again',
-    'rtc.testing': 'Testing… (takes a few seconds)',
-    'rtc.disabled': 'WebRTC is disabled in this browser, so it cannot leak your IP.',
-    'rtc.host': 'Local',
-    'rtc.srflx': 'Public (STUN)',
-    'rtc.prflx': 'Public (peer)',
-    'rtc.relay': 'Relay',
-    'rtc.vHidden': 'Hidden',
-    'rtc.vLocal': 'Local IP visible',
-    'rtc.vDevice': 'Device IP visible',
-    'rtc.vSame': 'Same as the IP this site sees',
-    'rtc.vDiff': 'Differs from the IP this site sees',
-    'rtc.sNone': 'No IP addresses were obtained through WebRTC.',
-    'rtc.sLeak': (server, ips) => `WebRTC exposes a public IP (${ips}) that differs from the one this site sees (${server}). If you are using a VPN or proxy, your real IP is leaking.`,
-    'rtc.sFamily': (server, ips) => `WebRTC shows a public IP of a different kind (${ips}) from the one this site sees (${server}). That is normal if it is just IPv4 vs IPv6, but it is a leak if your VPN only tunnels one of them.`,
-    'rtc.sSame': 'The public IP visible through WebRTC matches the one this site sees. No additional leak.',
-    'rtc.sNoPublic': 'No public IP was obtained through WebRTC.',
-    'rtc.secFound': 'Addresses found',
-    'rtc.thAddress': 'Address',
-    'rtc.thType': 'Type',
-    'rtc.thProtocol': 'Protocol',
-    'rtc.thVerdict': 'Verdict',
-    'rtc.secServer': 'IP this site sees',
-    'rtc.fail': (m) => `The test failed (${m})`,
-
-    'h.dns': 'DNS Propagation Check',
-    'lead.dns': 'Compares answers from several public DNS resolvers and simulated regions to see whether a DNS change has spread.',
-    'dns.adv': 'Add a region',
-    'dns.ecsLabel': 'Client subnet (IPv4)',
-    'dns.nameAria': 'Domain name',
-    'dns.typeAria': 'Record type',
-    'dns.error': 'Error',
-    'dns.match': 'Matches majority',
-    'dns.differs': 'Differs',
-    'dns.nx': 'NXDOMAIN (does not exist)',
-    'dns.noRecords': 'No records',
-    'dns.thSource': 'Source',
-    'dns.thAnswer': 'Answer',
-    'dns.thTime': 'Time',
-    'dns.thState': 'Status',
-    'dns.ttl': (n) => `${n}s`,
-    'dns.allFailed': 'Every query failed.',
-    'dns.allSame': (n, failed) => `All ${n} sources that responded gave the same answer.${failed ? ` (${failed} did not respond.)` : ''}`,
-    'dns.mixed': (total, agree) => `${agree} of ${total} sources agree and ${total - agree} differ. Right after a change, that means propagation is still in progress. For CDNs and other services that answer differently per region, differences are normal.`,
-    'dns.recordOf': (name, type) => `${type} records for ${name}`,
-    'dns.secResolvers': 'Public DNS resolvers',
-    'dns.hintResolvers': 'The same query sent to each public resolver.',
-    'dns.secGeo': 'By region (simulated)',
-    'dns.hintGeo': 'Sent to Google Public DNS as if the query came from a user in that region. The subnets shown are approximate.',
-    'dns.custom': 'Custom subnet',
-
-    'h.lookup': 'IP / Domain Lookup',
-    'lead.lookup': 'Enter an IP address or a domain name. The type is detected automatically.',
-    'lookup.ph': '8.8.8.8 or example.com',
-    'lookup.aria': 'IP address or domain name',
-    'role.registrant': 'Registrant',
-    'role.administrative': 'Administrative',
-    'role.technical': 'Technical',
-    'role.abuse': 'Abuse contact',
-    'role.registrar': 'Registrar',
-    'role.billing': 'Billing',
-    'role.noc': 'NOC',
-    'role.reseller': 'Reseller',
-    'role.sponsor': 'Sponsor',
-    'lk.thRole': 'Role',
-    'lk.thName': 'Name',
-    'lk.thContact': 'Contact',
-    'lk.noContacts': 'No public contacts.',
-    'lk.secIp': 'IP address',
-    'lk.ptr': 'Hostname (reverse DNS)',
-    'lk.secGeo': 'IP location (estimated)',
-    'lk.state': 'State / Region',
-    'lk.isp': 'ISP',
-    'lk.org': 'Organization',
-    'lk.network': 'Network',
-    'lk.prefix': 'Route (prefix)',
-    'lk.localTime': 'Local time',
-    'lk.geoNote': 'The location is estimated from the IP and can be far from the real place.',
-    'lk.countryNote': 'This is the country the address is registered in, not necessarily where it is used.',
-    'lk.secMap': 'Where this IP is',
-    'lk.secNetReg': 'Network registration',
-    'lk.netName': 'Network name',
-    'lk.range': 'Range',
-    'lk.kind': 'Type',
-    'lk.handle': 'Handle',
-    'lk.parent': 'Parent network',
-    'lk.rir': 'Allocated by',
-    'lk.registered': 'Registered',
-    'lk.updated': 'Last changed',
-    'lk.whoisServer': 'WHOIS server',
-    'lk.secContacts': 'Contacts',
-    'lk.secRemarks': 'Remarks',
-    'lk.noIpReg': 'No registration record was found for this IP.',
-    'lk.errPtr': 'reverse DNS',
-    'lk.errAsn': 'AS number',
-    'lk.errRdap': 'registration',
-    'lk.errGeo': 'location',
-    'lk.partial': (list) => `Some information could not be loaded (${list})`,
-    'lk.special': (ip, kind) => `${ip} is ${kind}. It has no registration on the public internet.`,
-    'lk.hostname': 'Hostname',
-    'lk.more': (n) => `+${n} more`,
-    'special.private': 'a private address (LAN only)',
-    'special.loopback': 'a loopback address (this device itself)',
-    'special.linklocal': 'a link-local address',
-    'special.cgnat': 'a shared address used for carrier-grade NAT',
-    'special.thisnet': 'a special “this network” address',
-    'special.doc': 'an address reserved for documentation examples',
-    'special.benchmark': 'an address reserved for benchmark testing',
-    'special.multicast': 'a multicast address',
-    'special.reserved': 'a reserved address',
-    'special.unspecified': 'the unspecified address',
-    'special.ula': 'a unique local address (LAN only)',
-
-    'dm.domain': 'Domain',
-    'dm.registeredFor': (q) => `Registered domain for ${q}`,
-    'dm.registrar': 'Registrar',
-    'dm.expires': 'Expires',
-    'dm.expired': 'Expired',
-    'dm.daysLeft': (n) => `${n} days left`,
-    'dm.notFound': (errs) => `No registration record was found. The domain may be unregistered, or this kind of domain may not publish registration data.${errs ? ` (${errs})` : ''}`,
-    'dm.moreIp': (ip) => `More registration details for ${ip} →`,
-    'dm.secReg': 'Domain registration',
-    'dm.name': 'Domain name',
-    'dm.status': 'Status',
-    'dm.nameservers': 'Name servers',
-    'dm.signed': 'Signed',
-    'dm.unsigned': 'Not signed',
-    'dm.registryId': 'Registry ID',
-    'dm.secDns': (q) => `DNS records (${q})`,
-    'dm.thKind': 'Type',
-    'dm.thValue': 'Value',
-    'dm.nxdomain': 'This name does not exist in DNS (NXDOMAIN).',
-    'dm.noRecords': 'No records found.',
-    'dm.failedTypes': (list) => `Types that failed to load: ${list}`,
-
-    'err.bad_type': 'Unsupported record type.',
-    'err.name_required': 'Enter a domain name.',
-    'err.bad_name': 'That is not a valid domain name.',
-    'err.bad_ecs': 'Enter the subnet as IPv4 in the form 203.0.113.0/24 (prefix 8–32).',
-    'err.timeout': 'Timed out',
-    'err.bad_response': 'Invalid response',
-    'err.bad_ip': 'That is not a valid IP address (examples: 8.8.8.8, 2001:4860:4860::8888).',
-    'err.geo_failed': 'Location unavailable',
-    'err.need_dot': 'Enter a domain name that contains a dot, such as example.com.',
-    'err.no_whois_server': 'No WHOIS server found for this TLD',
-  },
-
-  ja: {
-    locale: 'ja-JP',
-    docTitle: 'NetCheck — 接続・ブラウザ・DNS診断',
-    tagline: '接続・ブラウザ・DNS診断',
-    'tabs.aria': '診断ツール',
-    'tab.ip': 'IP・接続',
-    'tab.browser': 'ブラウザ',
-    'tab.fp': 'フィンガープリント',
-    'tab.webrtc': 'WebRTC',
-    'tab.dns': 'DNS伝播',
-    'tab.lookup': 'IP・ドメイン検索',
-    'theme.label': 'テーマ：',
-    'theme.mono': '白・灰色（標準）',
-    'theme.jp': '🇯🇵 日本風（平成）',
-    'theme.us': '🇺🇸 アメリカ風（90年代）',
-    'theme.ru': '🇷🇺 ロシア風（2000年代）',
-    'theme.cn': '🇨🇳 中国風（現代）',
-    go: '調べる',
-    'foot.honest': '表示した情報はどこにも保存していません。IP・接続情報と、DNS・IP・ドメインの検索だけがサーバーを経由します。',
-    'foot.honestRetro': '※ 見た目は怪しいですが、表示した情報はどこにも保存していません。IP・接続情報と、DNS・IP・ドメインの検索だけがサーバーを経由します。訪問回数はこのブラウザの中だけで数えています。',
-
-    loading: '取得中…',
-    computing: '計算中…',
-    searching: '検索中…',
-    querying: '問い合わせ中…',
-    none: 'なし',
-    yes: 'はい',
-    no: 'いいえ',
-    listSep: '、',
-    paren: (s) => `（${s}）`,
-
-    'h.ip': 'IP・接続情報',
-    'lead.ip': 'このサイトのサーバーから見えている、あなたの接続の情報です。',
-    'ip.fail': (m) => `接続情報を取得できませんでした（${m}）`,
-    'ip.address': 'IPアドレス',
-    'ip.location': '場所（推定）',
-    'ip.provider': 'プロバイダー',
-    'ip.transport': '通信',
-    'ip.tzMismatch': (a, b) => `IPから推定したタイムゾーン（${a}）と、ブラウザのタイムゾーン（${b}）が違います。VPNやプロキシを使っていると、サイト側からこの食い違いが見えます。`,
-    'ip.lookupOwn': 'このIPの登録情報を調べる →',
-    'ip.secGeo': '位置情報（IPからの推定）',
-    'ip.country': '国',
-    'ip.eu': '（EU）',
-    'ip.region': '地域',
-    'ip.city': '市区町村',
-    'ip.postal': '郵便番号',
-    'ip.coords': '緯度・経度',
-    'ip.timezone': 'タイムゾーン',
-    'ip.continent': '大陸',
-    'ip.secMap': 'あなたの場所（IPからの推定）',
-    'ip.secNetwork': 'ネットワーク',
-    'ip.asn': 'AS番号',
-    'ip.operator': '事業者',
-    'ip.colo': '接続先のCloudflare拠点',
-    'ip.secConn': '接続',
-    'ip.http': 'HTTPバージョン',
-    'ip.tls': 'TLSバージョン',
-    'ip.cipher': '暗号スイート',
-    'ip.rtt': 'TCP往復時間',
-    'ip.encodings': '対応する圧縮方式',
-    'ip.secHeaders': 'リクエストヘッダー',
-    mapTitle: '地図',
-
-    'h.browser': 'ブラウザ情報',
-    'lead.browser': 'JavaScriptからサイト側が読み取れる、ブラウザと端末の情報です。',
-    'br.secBrowser': 'ブラウザ',
-    'br.ua': 'ユーザーエージェント',
-    'br.brands': 'ブランドとバージョン',
-    'br.os': 'OS',
-    'br.cpu': 'CPUの種類',
-    'br.model': '機種',
-    'br.platform': 'プラットフォーム',
-    'br.vendor': 'ベンダー',
-    'br.languages': '言語',
-    'br.cookie': 'Cookie',
-    'br.on': '有効',
-    'br.off': '無効',
-    'br.unset': '未設定',
-    'br.unsupported': '非対応',
-    'br.webdriver': '自動操作（webdriver）',
-    'br.pdf': 'PDFビューアー内蔵',
-    'br.plugins': 'プラグイン数',
-    'br.secDevice': '端末',
-    'br.cores': 'CPUの論理コア数',
-    'br.memory': 'メモリー（概算）',
-    'br.memoryVal': (n) => `${n} GB 以上`,
-    'br.touch': 'タッチ点数',
-    'br.storage': '使えるストレージ（概算）',
-    'br.netType': '回線の種類',
-    'br.saveData': 'データセーバー',
-    'br.secScreen': '画面',
-    'br.res': '画面の解像度',
-    'br.avail': '使える領域',
-    'br.viewport': 'ウィンドウの表示領域',
-    'br.dpr': 'ピクセル比',
-    'br.depth': '色深度',
-    'br.orientation': '画面の向き',
-    'br.scheme': '配色の設定',
-    'br.dark': 'ダーク',
-    'br.light': 'ライト',
-    'br.reducedMotion': '動きを減らす設定',
-    'br.p3': '広色域（P3）',
-    'br.pointer': '主な入力',
-    'br.pTouch': 'タッチ',
-    'br.pMouse': 'マウス',
-    'br.pNone': 'なし',
-    'br.secLocale': '地域と時刻',
-    'br.locale': 'ロケール',
-    'br.calendar': '暦',
-    'br.numbering': '数字の体系',
-    'br.now': '現在時刻',
-
-    'h.fp': 'フィンガープリント',
-    'lead.fp': 'Cookieを使わずに端末を見分ける手がかりになる値です。計算はすべてブラウザ内で行い、どこにも送信しません。',
-    'fp.id': 'この端末の識別ID',
-    'fp.idSub': '下の値をすべて組み合わせたもの',
-    'fp.intro': '同じ端末・同じブラウザなら、Cookieを消してもシークレットモードにしても、ここのIDは基本的に変わりません。IDが毎回変わるなら、ブラウザのフィンガープリント対策が効いています。',
-    'fp.hash': 'ハッシュ',
-    'fp.unavailable': '取得できません',
-    'fp.rendering': '描画結果',
-    'fp.gpuVendor': 'GPUベンダー',
-    'fp.version': 'バージョン',
-    'fp.shading': 'シェーダー言語',
-    'fp.maxTex': '最大テクスチャーサイズ',
-    'fp.maxView': '最大ビューポート',
-    'fp.extCount': '拡張機能の数',
-    'fp.noWebgl': 'WebGLが使えないか、無効になっています。',
-    'fp.value': '計算値',
-    'fp.noAudio': 'オーディオのフィンガープリントを取得できません。',
-    'fp.fonts': (total, n) => `フォント（候補${total}個中 ${n}個を検出）`,
-    'fp.noFonts': '検出なし',
-
-    'h.webrtc': 'WebRTC漏れテスト',
-    'lead.webrtc': 'WebRTC経由で見えるIPアドレスを調べます。VPN利用中に、ここへVPNではない本来のIPが出ていたら漏れています。',
-    'webrtc.rerun': 'もう一度テストする',
-    'rtc.testing': 'テスト中…（数秒かかります）',
-    'rtc.disabled': 'このブラウザではWebRTCが無効になっています。WebRTC経由でIPが漏れることはありません。',
-    'rtc.host': 'ローカル',
-    'rtc.srflx': '外部（STUN）',
-    'rtc.prflx': '外部（ピア）',
-    'rtc.relay': 'リレー',
-    'rtc.vHidden': '隠されている',
-    'rtc.vLocal': 'ローカルIPが見える',
-    'rtc.vDevice': '端末のIPが見える',
-    'rtc.vSame': 'サイトから見えるIPと同じ',
-    'rtc.vDiff': 'サイトから見えるIPと違う',
-    'rtc.sNone': 'WebRTCからIPアドレスは取得されませんでした。',
-    'rtc.sLeak': (server, ips) => `サイトから見えるIP（${server}）とは別の外部IP（${ips}）がWebRTC経由で見えています。VPNやプロキシを使っているなら、本来のIPが漏れています。`,
-    'rtc.sFamily': (server, ips) => `サイトから見えるIP（${server}）とは種類の違う外部IP（${ips}）が見えています。IPv4とIPv6の違いによるものなら通常の動作ですが、VPNが片方しか通していない場合は漏れになります。`,
-    'rtc.sSame': 'WebRTCで見える外部IPは、サイトから見えるIPと同じです。追加の漏れはありません。',
-    'rtc.sNoPublic': '外部IPはWebRTCから取得されませんでした。',
-    'rtc.secFound': '見つかったアドレス',
-    'rtc.thAddress': 'アドレス',
-    'rtc.thType': '種類',
-    'rtc.thProtocol': 'プロトコル',
-    'rtc.thVerdict': '判定',
-    'rtc.secServer': 'サイトから見えるIP',
-    'rtc.fail': (m) => `テストに失敗しました（${m}）`,
-
-    'h.dns': 'DNS伝播チェック',
-    'lead.dns': '複数の公開DNSと、地域ごとの問い合わせ結果を並べて、DNSの変更が行き渡ったかを確認します。',
-    'dns.adv': '地域を追加で指定する',
-    'dns.ecsLabel': 'クライアントのサブネット（IPv4）',
-    'dns.nameAria': 'ドメイン名',
-    'dns.typeAria': 'レコードタイプ',
-    'dns.error': 'エラー',
-    'dns.match': '多数派と一致',
-    'dns.differs': '他と違う',
-    'dns.nx': 'NXDOMAIN（存在しない）',
-    'dns.noRecords': 'レコードなし',
-    'dns.thSource': '問い合わせ元',
-    'dns.thAnswer': '回答',
-    'dns.thTime': '応答',
-    'dns.thState': '状態',
-    'dns.ttl': (n) => `${n}秒`,
-    'dns.allFailed': 'すべての問い合わせが失敗しました。',
-    'dns.allSame': (n, failed) => `応答した${n}か所すべてが同じ回答です。${failed ? `（${failed}か所は応答なし）` : ''}`,
-    'dns.mixed': (total, agree) => `${total}か所中${agree}か所が同じ回答で、${total - agree}か所は違う回答です。変更直後なら伝播の途中です。CDNなど地域ごとに回答を変えるサービスでは、違っていて正常です。`,
-    'dns.recordOf': (name, type) => `${name} の ${type} レコード`,
-    'dns.secResolvers': '公開DNSリゾルバー',
-    'dns.hintResolvers': '各社の公開DNSに同じ問い合わせを送った結果です。',
-    'dns.secGeo': '地域別（擬似）',
-    'dns.hintGeo': 'Google Public DNSに「その地域のユーザーからの問い合わせ」として送った結果です。表示しているサブネットは目安です。',
-    'dns.custom': '指定サブネット',
-
-    'h.lookup': 'IP・ドメイン検索',
-    'lead.lookup': 'IPアドレスかドメイン名を入力してください。どちらかを自動で判別して、登録情報を調べます。',
-    'lookup.ph': '8.8.8.8 または example.com',
-    'lookup.aria': 'IPアドレスまたはドメイン名',
-    'role.registrant': '登録者',
-    'role.administrative': '管理担当',
-    'role.technical': '技術担当',
-    'role.abuse': '不正利用の連絡先',
-    'role.registrar': 'レジストラ',
-    'role.billing': '請求担当',
-    'role.noc': 'ネットワーク運用',
-    'role.reseller': '再販業者',
-    'role.sponsor': 'スポンサー',
-    'lk.thRole': '役割',
-    'lk.thName': '名前',
-    'lk.thContact': '連絡先',
-    'lk.noContacts': '公開されている連絡先はありません。',
-    'lk.secIp': 'IPアドレス',
-    'lk.ptr': 'ホスト名（逆引き）',
-    'lk.secGeo': 'IPの所在地（推定）',
-    'lk.state': '都道府県・州',
-    'lk.isp': 'ISP',
-    'lk.org': '組織',
-    'lk.network': 'ネットワーク',
-    'lk.prefix': '経路（プレフィックス）',
-    'lk.localTime': '現地時刻',
-    'lk.geoNote': '位置はIPからの推定です。実際の場所と大きくずれることがあります。',
-    'lk.countryNote': '国はアドレスの登録上のもので、実際に使われている場所とは限りません。',
-    'lk.secMap': 'このIPの場所',
-    'lk.secNetReg': 'ネットワークの登録情報',
-    'lk.netName': 'ネットワーク名',
-    'lk.range': '範囲',
-    'lk.kind': '種別',
-    'lk.handle': 'ハンドル',
-    'lk.parent': '上位ネットワーク',
-    'lk.rir': '割り当て元',
-    'lk.registered': '登録日',
-    'lk.updated': '最終更新',
-    'lk.whoisServer': 'WHOISサーバー',
-    'lk.secContacts': '連絡先',
-    'lk.secRemarks': '備考',
-    'lk.noIpReg': 'このIPの登録情報は見つかりませんでした。',
-    'lk.errPtr': '逆引き',
-    'lk.errAsn': 'AS番号',
-    'lk.errRdap': '登録情報',
-    'lk.errGeo': '所在地',
-    'lk.partial': (list) => `一部の情報を取得できませんでした（${list}）`,
-    'lk.special': (ip, kind) => `${ip} は${kind}です。インターネット上の登録情報はありません。`,
-    'lk.hostname': 'ホスト名',
-    'lk.more': (n) => `ほか${n}件`,
-    'special.private': 'プライベートアドレス（LAN内専用）',
-    'special.loopback': 'ループバックアドレス（自分自身）',
-    'special.linklocal': 'リンクローカルアドレス',
-    'special.cgnat': 'キャリアグレードNAT用の共有アドレス',
-    'special.thisnet': '「このネットワーク」を表す特別なアドレス',
-    'special.doc': '文書の例示用アドレス',
-    'special.benchmark': 'ベンチマーク試験用アドレス',
-    'special.multicast': 'マルチキャストアドレス',
-    'special.reserved': '予約済みアドレス',
-    'special.unspecified': '未指定アドレス',
-    'special.ula': 'ユニークローカルアドレス（LAN内専用）',
-
-    'dm.domain': 'ドメイン',
-    'dm.registeredFor': (q) => `${q} の登録元`,
-    'dm.registrar': 'レジストラ',
-    'dm.expires': '有効期限',
-    'dm.expired': '期限切れ',
-    'dm.daysLeft': (n) => `残り${n}日`,
-    'dm.notFound': (errs) => `登録情報が見つかりませんでした。未登録か、このドメインの種類では登録情報が公開されていない可能性があります。${errs ? `（${errs}）` : ''}`,
-    'dm.moreIp': (ip) => `${ip} の登録情報をさらに詳しく →`,
-    'dm.secReg': 'ドメインの登録情報',
-    'dm.name': 'ドメイン名',
-    'dm.status': '状態',
-    'dm.nameservers': 'ネームサーバー',
-    'dm.signed': '署名あり',
-    'dm.unsigned': '署名なし',
-    'dm.registryId': 'レジストリのID',
-    'dm.secDns': (q) => `DNSレコード（${q}）`,
-    'dm.thKind': '種類',
-    'dm.thValue': '値',
-    'dm.nxdomain': 'この名前はDNSに存在しません（NXDOMAIN）。',
-    'dm.noRecords': 'レコードが見つかりませんでした。',
-    'dm.failedTypes': (list) => `取得に失敗した種類: ${list}`,
-
-    'err.bad_type': '未対応のレコードタイプです。',
-    'err.name_required': 'ドメイン名を入力してください。',
-    'err.bad_name': 'ドメイン名の形式が正しくありません。',
-    'err.bad_ecs': 'サブネットは 203.0.113.0/24 の形式（IPv4、プレフィックス8〜32）で指定してください。',
-    'err.timeout': 'タイムアウト',
-    'err.bad_response': '応答が不正です',
-    'err.bad_ip': 'IPアドレスの形式が正しくありません（例: 8.8.8.8、2001:4860:4860::8888）。',
-    'err.geo_failed': '所在地を取得できません',
-    'err.need_dot': 'example.com のように、ドットを含むドメイン名を入力してください。',
-    'err.no_whois_server': 'このTLDのWHOISサーバーが見つかりません',
-  },
-};
 
 // 標準は英語。選んだ言語はブラウザに保存する
 let lang = store.get('netcheck-lang');
@@ -636,7 +74,10 @@ function kvTable(rows) {
   );
 }
 
-const section = (title, ...body) => [el('h2', {}, title), ...body];
+// 見出しつきのまとまり。配列で返すのは、呼び出し側が ...section(...) と並べて書けるようにするため
+const section = (title, ...body) => [el('section', { class: 'sec' }, el('h2', {}, title), ...body)];
+// PC幅では横に2列、スマホ幅では縦に並ぶ入れ物。各引数が1列になる
+const cols = (...columns) => el('div', { class: 'cols' }, columns.map((c) => el('div', {}, c)));
 const stat = (k, v, s, mono) => el('div', { class: 'stat' }, el('div', { class: 'k' }, k), el('div', { class: `v${mono ? ' mono' : ''}` }, show(v)), s ? el('div', { class: 's' }, s) : null);
 const note = (kind, text) => el('p', { class: `note ${kind}` }, text);
 const badge = (kind, text) => el('span', { class: `badge ${kind}` }, text);
@@ -689,13 +130,55 @@ function localTime(timeZone) {
   }
 }
 
+// 地図は Leaflet（public/vendor/leaflet に同梱）で描く。必要になるまで読み込まない
+let leafletPromise;
+function loadLeaflet() {
+  leafletPromise ??= new Promise((resolve, reject) => {
+    document.head.append(el('link', { rel: 'stylesheet', href: '/vendor/leaflet/leaflet.css' }));
+    const script = el('script', { src: '/vendor/leaflet/leaflet.js' });
+    script.onload = () => {
+      window.L.Icon.Default.imagePath = '/vendor/leaflet/images/';
+      resolve(window.L);
+    };
+    script.onerror = () => reject(new Error('leaflet'));
+    document.head.append(script);
+  });
+  return leafletPromise;
+}
+
+async function drawMap(box) {
+  try {
+    const L = await loadLeaflet();
+    const pos = [Number(box.dataset.lat), Number(box.dataset.lon)];
+    const map = L.map(box, { scrollWheelZoom: false, attributionControl: false }).setView(pos, 6);
+    // 出典は「© OpenStreetMap contributors」だけを出す（表示言語に関係なく固定）
+    L.control.attribution({ prefix: false }).addTo(map);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18,
+      attribution: '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors',
+    }).addTo(map);
+    L.marker(pos, { keyboard: false }).addTo(map);
+  } catch {
+    box.remove();
+  }
+}
+
+// 画面に入ったときに初めて描く（隠れているタブの中では大きさが決まらないため）
+const mapObserver = new IntersectionObserver((entries) => {
+  for (const entry of entries) {
+    if (!entry.isIntersecting) continue;
+    mapObserver.unobserve(entry.target);
+    drawMap(entry.target);
+  }
+});
+
 function mapFrame(lat, lon) {
   lat = Number(lat);
   lon = Number(lon);
   if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
-  const bbox = [lon - 6, Math.max(lat - 3.2, -85), lon + 6, Math.min(lat + 3.2, 85)].map((n) => n.toFixed(4)).join(',');
-  const src = `https://www.openstreetmap.org/export/embed.html?bbox=${encodeURIComponent(bbox)}&layer=mapnik&marker=${lat},${lon}`;
-  return el('div', { class: 'map' }, el('iframe', { src, loading: 'lazy', title: t('mapTitle'), referrerpolicy: 'no-referrer' }));
+  const box = el('div', { class: 'map', 'aria-label': t('mapTitle'), 'data-lat': lat, 'data-lon': lon });
+  mapObserver.observe(box);
+  return box;
 }
 
 // ---------- IP・接続 ----------
@@ -733,36 +216,42 @@ async function initIp() {
     body,
     tzNote,
     info.ip ? el('p', { style: 'margin:14px 0 0' }, el('a', { href: `#lookup?q=${encodeURIComponent(info.ip)}` }, t('ip.lookupOwn'))) : null,
-    ...section(
-      t('ip.secGeo'),
-      kvTable([
-        [t('ip.country'), geo.country ? `${flag(geo.country)} ${regionName(geo.country)}${geo.isEUCountry ? t('ip.eu') : ''}` : null],
-        [t('ip.region'), [geo.region, geo.regionCode && `(${geo.regionCode})`].filter(Boolean).join(' ')],
-        [t('ip.city'), geo.city],
-        [t('ip.postal'), geo.postalCode],
-        [t('ip.coords'), coords],
-        [t('ip.timezone'), geo.timezone],
-        [t('ip.continent'), geo.continent],
-      ]),
-    ),
-    ...(map ? section(t('ip.secMap'), map) : []),
-    ...section(
-      t('ip.secNetwork'),
-      kvTable([
-        [t('ip.asn'), network.asn ? `AS${network.asn}` : null],
-        [t('ip.operator'), network.asOrganization],
-        [t('ip.colo'), network.colo],
-      ]),
-    ),
-    ...section(
-      t('ip.secConn'),
-      kvTable([
-        [t('ip.http'), connection.httpProtocol],
-        [t('ip.tls'), connection.tlsVersion],
-        [t('ip.cipher'), connection.tlsCipher],
-        [t('ip.rtt'), connection.clientTcpRtt ? `${connection.clientTcpRtt} ms` : null],
-        [t('ip.encodings'), connection.clientAcceptEncoding],
-      ]),
+    cols(
+      [
+        ...section(
+          t('ip.secGeo'),
+          kvTable([
+            [t('ip.country'), geo.country ? `${flag(geo.country)} ${regionName(geo.country)}${geo.isEUCountry ? t('ip.eu') : ''}` : null],
+            [t('ip.region'), [geo.region, geo.regionCode && `(${geo.regionCode})`].filter(Boolean).join(' ')],
+            [t('ip.city'), geo.city],
+            [t('ip.postal'), geo.postalCode],
+            [t('ip.coords'), coords],
+            [t('ip.timezone'), geo.timezone],
+            [t('ip.continent'), geo.continent],
+          ]),
+        ),
+        ...section(
+          t('ip.secNetwork'),
+          kvTable([
+            [t('ip.asn'), network.asn ? `AS${network.asn}` : null],
+            [t('ip.operator'), network.asOrganization],
+            [t('ip.colo'), network.colo],
+          ]),
+        ),
+      ],
+      [
+        ...(map ? section(t('ip.secMap'), map) : []),
+        ...section(
+          t('ip.secConn'),
+          kvTable([
+            [t('ip.http'), connection.httpProtocol],
+            [t('ip.tls'), connection.tlsVersion],
+            [t('ip.cipher'), connection.tlsCipher],
+            [t('ip.rtt'), connection.clientTcpRtt ? `${connection.clientTcpRtt} ms` : null],
+            [t('ip.encodings'), connection.clientAcceptEncoding],
+          ]),
+        ),
+      ],
     ),
     ...section(t('ip.secHeaders'), kvTable(info.headers.map((h) => [h.name, h.value]))),
   );
@@ -772,6 +261,7 @@ async function initIp() {
 
 async function initBrowser() {
   const body = $('#browser-body');
+  body.classList.add('masonry');
   const n = navigator;
   const s = screen;
   const intl = Intl.DateTimeFormat().resolvedOptions();
@@ -950,6 +440,7 @@ async function initFp() {
   const hero = $('#fp-hero');
   const body = $('#fp-body');
   body.replaceChildren(loading(t('computing')));
+  body.classList.add('masonry');
 
   const safe = async (fn) => {
     try {
@@ -1133,11 +624,53 @@ function dnsTable(title, hint, results, majority, queryType) {
       el('td', {}, state),
     );
   });
-  return [
-    el('h2', {}, title),
-    el('p', { class: 'sub', style: 'margin:-4px 0 8px' }, hint),
-    listTable([t('dns.thSource'), t('dns.thAnswer'), ['TTL'], [t('dns.thTime')], t('dns.thState')], rows),
-  ];
+  return section(title, el('p', { class: 'sub', style: 'margin:0 0 6px' }, hint), listTable([t('dns.thSource'), t('dns.thAnswer'), ['TTL'], [t('dns.thTime')], t('dns.thState')], rows));
+}
+
+// 世界地図（国境の線画。public/world-110m.json、Natural Earth 由来）に、地域別の結果を印で置く
+let worldPromise;
+const loadWorld = () =>
+  (worldPromise ??= fetch('/world-110m.json').then((r) => {
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return r.json();
+  }));
+
+function svg(tag, attrs = {}, ...children) {
+  const node = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
+  node.append(...children);
+  return node;
+}
+
+const PIN_MARK = { ok: '✓', warn: '!', bad: '✕' };
+// ok = 多数派と同じ回答、warn = 違う回答、bad = エラーか回答なし
+const pinState = (r, majority) => (r.error || r.status !== 'NOERROR' || !r.answers.length ? 'bad' : answerKey(r) === majority ? 'ok' : 'warn');
+
+function dnsMap(results, majority) {
+  const placed = results.filter((r) => Number.isFinite(r.lat) && Number.isFinite(r.lon));
+  if (!placed.length) return [];
+  const box = el('div', { class: 'worldmap' });
+  loadWorld()
+    .then((world) => {
+      const root = svg('svg', { viewBox: world.viewBox, role: 'img', 'aria-label': t('dns.secMap') }, svg('path', { class: 'land', d: world.d }));
+      // 回答なし・違う回答の印を上に重ねて、埋もれないようにする
+      const order = { ok: 0, warn: 1, bad: 2 };
+      const pins = placed.map((r) => ({ r, state: pinState(r, majority) })).sort((a, b) => order[a.state] - order[b.state]);
+      for (const { r, state } of pins) {
+        const x = ((r.lon + 180) / 360) * world.width;
+        const y = ((90 - r.lat) / 180) * world.height;
+        const answer = r.error ? errText(r.error) : r.status !== 'NOERROR' ? r.status : r.answers.map((a) => a.data).join(', ') || t('dns.noRecords');
+        root.append(svg('g', { class: `pin ${state}`, transform: `translate(${x.toFixed(1)} ${y.toFixed(1)})` }, svg('title', {}, `${dnsSourceLabel(r)}: ${answer}`), svg('circle', {}), svg('text', {}, PIN_MARK[state])));
+      }
+      box.append(root);
+    })
+    .catch(() => box.closest('.sec')?.remove());
+  const legend = el(
+    'p',
+    { class: 'legend' },
+    [['ok', t('dns.match')], ['warn', t('dns.differs')], ['bad', `${t('dns.error')} / ${t('dns.noRecords')}`]].map(([state, label]) => el('span', {}, el('span', { class: `dot ${state}` }, PIN_MARK[state]), ` ${label}`)),
+  );
+  return section(t('dns.secMap'), box, legend);
 }
 
 async function runDns(name, type, ecs) {
@@ -1168,6 +701,7 @@ async function runDns(name, type, ecs) {
     body.replaceChildren(
       el('p', { class: 'sub', style: 'margin:12px 0 0' }, t('dns.recordOf', data.name, data.type)),
       summary,
+      ...dnsMap(byGroup('geo'), majority),
       ...dnsTable(t('dns.secResolvers'), t('dns.hintResolvers'), byGroup('resolver'), majority, data.type),
       ...dnsTable(t('dns.secGeo'), t('dns.hintGeo'), byGroup('geo'), majority, data.type),
     );
@@ -1255,7 +789,8 @@ async function runSearch(tab, api, q, render) {
 function ipSections(d, { brief = false } = {}) {
   const { asn, rdap, geo } = d;
   const cc = geo?.countryCode || asn?.country || rdap?.country;
-  const out = [
+  const map = geo && mapFrame(geo.lat, geo.lon);
+  const where = [
     ...section(
       t('lk.secIp'),
       kvTable([
@@ -1280,29 +815,33 @@ function ipSections(d, { brief = false } = {}) {
       el('p', { class: 'sub', style: 'margin:6px 2px 0' }, geo ? t('lk.geoNote') : t('lk.countryNote')),
     ),
   ];
-  const map = geo && mapFrame(geo.lat, geo.lon);
-  if (map) out.push(...section(t('lk.secMap'), map));
+  // 地図があれば、所在地の表と横に並べる
+  const out = map ? [cols(where, section(t('lk.secMap'), map))] : [...where];
   if (brief) return out;
 
   if (rdap) {
     out.push(
-      ...section(
-        t('lk.secNetReg'),
-        kvTable([
-          [t('lk.netName'), rdap.name],
-          [t('lk.range'), rdap.start && rdap.end ? `${rdap.start} – ${rdap.end}` : null],
-          ['CIDR', lines(rdap.cidr)],
-          [t('lk.kind'), rdap.type],
-          [t('lk.handle'), rdap.handle],
-          [t('lk.parent'), rdap.parent],
-          [t('lk.rir'), asn?.registry?.toUpperCase()],
-          [t('lk.registered'), fmtDate(rdap.events.registration || asn?.allocated)],
-          [t('lk.updated'), fmtDate(rdap.events['last changed'])],
-          [t('lk.whoisServer'), rdap.source],
-        ]),
+      cols(
+        section(
+          t('lk.secNetReg'),
+          kvTable([
+            [t('lk.netName'), rdap.name],
+            [t('lk.range'), rdap.start && rdap.end ? `${rdap.start} – ${rdap.end}` : null],
+            ['CIDR', lines(rdap.cidr)],
+            [t('lk.kind'), rdap.type],
+            [t('lk.handle'), rdap.handle],
+            [t('lk.parent'), rdap.parent],
+            [t('lk.rir'), asn?.registry?.toUpperCase()],
+            [t('lk.registered'), fmtDate(rdap.events.registration || asn?.allocated)],
+            [t('lk.updated'), fmtDate(rdap.events['last changed'])],
+            [t('lk.whoisServer'), rdap.source],
+          ]),
+        ),
+        [
+          ...section(t('lk.secContacts'), entitiesTable(rdap.entities)),
+          ...(rdap.remarks.length ? section(t('lk.secRemarks'), el('div', { class: 'card' }, el('pre', { class: 'raw' }, rdap.remarks.join('\n')))) : []),
+        ],
       ),
-      ...section(t('lk.secContacts'), entitiesTable(rdap.entities)),
-      ...(rdap.remarks.length ? section(t('lk.secRemarks'), el('div', { class: 'card' }, el('pre', { class: 'raw' }, rdap.remarks.join('\n')))) : []),
     );
   } else if (!d.errors.rdap) out.push(note('warn', t('lk.noIpReg')));
   return out;
@@ -1351,36 +890,38 @@ function renderDomain(d, hero, body) {
     body,
     d.registered ? null : note('warn', t('dm.notFound', Object.values(d.errors).map(errText).join(t('listSep')))),
     ...(ip ? [...ipSections(ip, { brief: true }), el('p', { style: 'margin:8px 2px 0' }, el('a', { href: `#lookup?q=${encodeURIComponent(ip.ip)}` }, t('dm.moreIp', ip.ip)))] : []),
-    ...(r
-      ? [
-          ...section(
-            t('dm.secReg'),
-            kvTable([
-              [t('dm.name'), d.registered],
-              [t('dm.registrar'), r.registrar?.name],
-              [t('dm.status'), lines(r.status)],
-              [t('dm.nameservers'), lines(r.nameservers)],
-              ['DNSSEC', r.dnssec === null ? null : r.dnssec ? t('dm.signed') : t('dm.unsigned')],
-              [t('lk.registered'), fmtDate(r.events.registration)],
-              [t('dm.expires'), fmtDate(expires)],
-              [t('lk.updated'), fmtDate(r.events['last changed'])],
-              [t('dm.registryId'), r.handle],
-              [t('lk.whoisServer'), r.source],
-            ]),
-          ),
-          ...section(t('lk.secContacts'), entitiesTable(r.entities)),
-        ]
-      : []),
-    ...(d.whois ? section(`WHOIS${t('paren', d.whois.server)}`, el('div', { class: 'card' }, el('pre', { class: 'raw' }, d.whois.text))) : []),
-    ...section(
-      t('dm.secDns', d.query),
-      records.length
-        ? listTable(
-            [t('dm.thKind'), t('dm.thValue'), ['TTL']],
-            records.map((a) => el('tr', {}, el('td', {}, badge('info', a.type)), el('td', { class: 'ans' }, value(a)), el('td', { class: 'num' }, t('dns.ttl', a.ttl)))),
-          )
-        : el('p', { class: 'muted' }, nx ? t('dm.nxdomain') : t('dm.noRecords')),
-      dnsFailed.length ? el('p', { class: 'sub' }, t('dm.failedTypes', dnsFailed.join(', '))) : null,
+    cols(
+      [
+        ...(r
+          ? section(
+              t('dm.secReg'),
+              kvTable([
+                [t('dm.name'), d.registered],
+                [t('dm.registrar'), r.registrar?.name],
+                [t('dm.status'), lines(r.status)],
+                [t('dm.nameservers'), lines(r.nameservers)],
+                ['DNSSEC', r.dnssec === null ? null : r.dnssec ? t('dm.signed') : t('dm.unsigned')],
+                [t('lk.registered'), fmtDate(r.events.registration)],
+                [t('dm.expires'), fmtDate(expires)],
+                [t('lk.updated'), fmtDate(r.events['last changed'])],
+                [t('dm.registryId'), r.handle],
+                [t('lk.whoisServer'), r.source],
+              ]),
+            )
+          : []),
+        ...(r ? section(t('lk.secContacts'), entitiesTable(r.entities)) : []),
+        ...(d.whois ? section(`WHOIS${t('paren', d.whois.server)}`, el('div', { class: 'card' }, el('pre', { class: 'raw' }, d.whois.text))) : []),
+      ],
+      section(
+        t('dm.secDns', d.query),
+        records.length
+          ? listTable(
+              [t('dm.thKind'), t('dm.thValue'), ['TTL']],
+              records.map((a) => el('tr', {}, el('td', {}, badge('info', a.type)), el('td', { class: 'ans' }, value(a)), el('td', { class: 'num' }, t('dns.ttl', a.ttl)))),
+            )
+          : el('p', { class: 'muted' }, nx ? t('dm.nxdomain') : t('dm.noRecords')),
+        dnsFailed.length ? el('p', { class: 'sub' }, t('dm.failedTypes', dnsFailed.join(', '))) : null,
+      ),
     ),
   );
 }

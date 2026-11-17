@@ -23,20 +23,44 @@ const RESOLVERS = [
 
 // EDNS Client Subnet で「その地域のユーザーから来た問い合わせ」を擬似的に再現する。
 // サブネットは各国の大手ISPの代表的な帯域（おおよその目安）。
+// 緯度・経度は地図に印を置くための代表都市。1回の検索の外部リクエストは
+// 「リゾルバー数 + 地域数 + 1（指定サブネット）」件で、無料枠の上限50件に収める。
 const ECS_RESOLVER = 'https://dns.google/dns-query';
 const LOCATIONS = [
-  { id: 'jp', cc: 'JP', ecs: '126.0.0.0/24' },
-  { id: 'kr', cc: 'KR', ecs: '121.128.0.0/24' },
-  { id: 'sg', cc: 'SG', ecs: '220.255.0.0/24' },
-  { id: 'in', cc: 'IN', ecs: '117.192.0.0/24' },
-  { id: 'au', cc: 'AU', ecs: '58.160.0.0/24' },
-  { id: 'de', cc: 'DE', ecs: '84.128.0.0/24' },
-  { id: 'gb', cc: 'GB', ecs: '86.128.0.0/24' },
-  { id: 'fr', cc: 'FR', ecs: '90.0.0.0/24' },
-  { id: 'us-e', cc: 'US', isp: 'Comcast', ecs: '73.0.0.0/24' },
-  { id: 'us-w', cc: 'US', isp: 'AT&T', ecs: '99.0.0.0/24' },
-  { id: 'br', cc: 'BR', ecs: '177.0.0.0/24' },
-  { id: 'za', cc: 'ZA', ecs: '41.0.0.0/24' },
+  // アジア・オセアニア
+  { id: 'jp', cc: 'JP', lat: 35.68, lon: 139.69, ecs: '126.0.0.0/24' },
+  { id: 'kr', cc: 'KR', lat: 37.57, lon: 126.98, ecs: '121.128.0.0/24' },
+  { id: 'tw', cc: 'TW', lat: 25.03, lon: 121.57, ecs: '114.32.0.0/24' },
+  { id: 'hk', cc: 'HK', lat: 22.32, lon: 114.17, ecs: '1.64.0.0/24' },
+  { id: 'vn', cc: 'VN', lat: 21.03, lon: 105.85, ecs: '14.160.0.0/24' },
+  { id: 'th', cc: 'TH', lat: 13.75, lon: 100.5, ecs: '1.0.128.0/24' },
+  { id: 'sg', cc: 'SG', lat: 1.35, lon: 103.82, ecs: '220.255.0.0/24' },
+  { id: 'id', cc: 'ID', lat: -6.21, lon: 106.85, ecs: '36.72.0.0/24' },
+  { id: 'in', cc: 'IN', lat: 19.08, lon: 72.88, ecs: '117.192.0.0/24' },
+  { id: 'ae', cc: 'AE', lat: 25.2, lon: 55.27, ecs: '86.96.0.0/24' },
+  { id: 'au', cc: 'AU', lat: -33.87, lon: 151.21, ecs: '58.160.0.0/24' },
+  { id: 'nz', cc: 'NZ', lat: -36.85, lon: 174.76, ecs: '122.56.0.0/24' },
+  // ヨーロッパ
+  { id: 'gb', cc: 'GB', lat: 51.51, lon: -0.13, ecs: '86.128.0.0/24' },
+  { id: 'fr', cc: 'FR', lat: 48.86, lon: 2.35, ecs: '90.0.0.0/24' },
+  { id: 'es', cc: 'ES', lat: 40.42, lon: -3.7, ecs: '80.58.0.0/24' },
+  { id: 'it', cc: 'IT', lat: 41.9, lon: 12.5, ecs: '79.0.0.0/24' },
+  { id: 'nl', cc: 'NL', lat: 52.37, lon: 4.9, ecs: '194.109.0.0/24' },
+  { id: 'de', cc: 'DE', lat: 50.11, lon: 8.68, ecs: '84.128.0.0/24' },
+  { id: 'se', cc: 'SE', lat: 59.33, lon: 18.07, ecs: '81.224.0.0/24' },
+  { id: 'pl', cc: 'PL', lat: 52.23, lon: 21.01, ecs: '83.0.0.0/24' },
+  { id: 'tr', cc: 'TR', lat: 41.01, lon: 28.98, ecs: '88.224.0.0/24' },
+  { id: 'ru', cc: 'RU', lat: 55.76, lon: 37.62, ecs: '77.88.8.0/24' },
+  // 南北アメリカ
+  { id: 'ca', cc: 'CA', lat: 51.05, lon: -114.07, ecs: '24.64.0.0/24' },
+  { id: 'us-e', cc: 'US', isp: 'Comcast', lat: 39.95, lon: -75.17, ecs: '73.0.0.0/24' },
+  { id: 'us-w', cc: 'US', isp: 'AT&T', lat: 32.78, lon: -96.8, ecs: '99.0.0.0/24' },
+  { id: 'mx', cc: 'MX', lat: 19.43, lon: -99.13, ecs: '189.128.0.0/24' },
+  { id: 'br', cc: 'BR', lat: -23.55, lon: -46.63, ecs: '177.0.0.0/24' },
+  // アフリカ
+  { id: 'eg', cc: 'EG', lat: 30.04, lon: 31.24, ecs: '41.32.0.0/24' },
+  { id: 'ng', cc: 'NG', lat: 6.52, lon: 3.38, ecs: '197.210.0.0/24' },
+  { id: 'za', cc: 'ZA', lat: -26.2, lon: 28.05, ecs: '41.0.0.0/24' },
 ];
 
 export default {
@@ -89,7 +113,7 @@ async function dns(params) {
 
   const jobs = [
     ...RESOLVERS.map((r) => ({ group: 'resolver', id: r.id, label: r.label, note: r.note, url: r.url })),
-    ...LOCATIONS.map((l) => ({ group: 'geo', id: l.id, cc: l.cc, isp: l.isp, note: l.ecs, url: ECS_RESOLVER, ecs: l.ecs })),
+    ...LOCATIONS.map((l) => ({ group: 'geo', id: l.id, cc: l.cc, isp: l.isp, lat: l.lat, lon: l.lon, note: l.ecs, url: ECS_RESOLVER, ecs: l.ecs })),
   ];
   if (customEcs) {
     parseEcs(customEcs); // 不正ならここで例外

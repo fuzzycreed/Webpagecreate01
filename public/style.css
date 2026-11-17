@@ -95,7 +95,26 @@
   --counter-fg: #ffffff;
   --banner-bg: #ffffff;
   --banner-fg: #000000;
+  /* 世界地図（DNS伝播）の色 */
+  --sea: #f6f6f4;
+  --land: #d3d3cf;
+  --land-line: #ffffff;
+  --pin-ok: #4a4a4a;
+  --pin-warn: #9a9a95;
+  --pin-bad: #ffffff;
+  --pin-bad-mark: #2b2b2b;
   color-scheme: light;
+}
+
+/* 隠しテーマ共通の地図の色（各テーマのブロックで陸と海だけ上書きする） */
+:root:where([data-theme]:not([data-theme="mono"])) {
+  --sea: #e9eef5;
+  --land: #4a74a8;
+  --land-line: #dfe8f5;
+  --pin-ok: #1a9a3a;
+  --pin-warn: #e08a00;
+  --pin-bad: #d62020;
+  --pin-bad-mark: #ffffff;
 }
 
 /* ---------- 日本風：平成の個人サイト ---------- */
@@ -419,6 +438,9 @@
   --foot-muted: #8c8c8c;
   --counter-fg: #ffd666;
 }
+:root[data-theme="us"] { --sea: #000080; --land: #00c000; --land-line: #000080; }
+:root[data-theme="ru"] { --sea: #e3e9f0; --land: #5b7896; --land-line: #e3e9f0; }
+:root[data-theme="cn"] { --sea: #fff7f0; --land: #ffb199; --land-line: #ffffff; }
 :root[data-theme="cn"] body { background-repeat: no-repeat; padding-bottom: 80px; }
 :root[data-theme="cn"] .page { overflow: hidden; }
 :root[data-theme="cn"] .btn.primary { padding: 5px 22px; box-shadow: 0 4px 12px rgba(255, 77, 45, .45); animation: cn-pulse 1.6s ease-in-out infinite; }
@@ -463,7 +485,7 @@ a { color: var(--link); }
 a:visited { color: var(--link-visited); }
 a:hover { color: var(--link-hover-fg); background: var(--link-hover-bg); }
 
-.page { max-width: 860px; margin: 0 auto; background: var(--paper); border: var(--page-border); box-shadow: var(--page-shadow); border-radius: var(--radius); }
+.page { max-width: 1240px; margin: 0 auto; background: var(--paper); border: var(--page-border); box-shadow: var(--page-shadow); border-radius: var(--radius); }
 
 /* 隠しテーマ専用の飾りは、標準テーマでは出さない */
 :root:not([data-theme]) .retro-only, :root[data-theme="mono"] .retro-only { display: none !important; }
@@ -508,11 +530,27 @@ a:hover { color: var(--link-hover-fg); background: var(--link-hover-bg); }
 .tabs button[aria-selected="true"] { font-weight: bold; color: var(--tab-on-fg); background: var(--tab-on-bg); border: var(--tab-on-border); }
 .tabs button[aria-selected="true"]::before { content: var(--tab-on-mark); color: var(--tab-mark-color); }
 .tab-select { display: none; }
+
+/* レイアウトは3段階。
+   スマホ（〜640px）：1列。タブはプルダウン。
+   中間（641〜959px）：1列。タブは上に横並び。
+   PC（960px〜）：左に縦のメニュー、右に本文。本文の中は2列に並べられるところを並べる。 */
+.cols > div { min-width: 0; }
 @media (max-width: 640px) {
   .tabs { display: none; }
   .tab-select { display: block; width: calc(100% - 16px); margin: 8px; }
   .brand, .brand:visited, .brand:hover { font-size: 30px; }
   .page { box-shadow: none; }
+}
+@media (min-width: 960px) {
+  .layout { display: grid; grid-template-columns: 208px minmax(0, 1fr); }
+  .tabs { flex-direction: column; flex-wrap: nowrap; justify-content: flex-start; align-items: stretch; gap: 6px; padding: 16px 10px; border-bottom: 0; border-right: var(--tabs-rule); }
+  .tabs button { text-align: left; padding: 7px 10px; font-size: 14px; }
+  main { padding: 18px 24px 32px; }
+  .cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 22px; align-items: start; }
+  .masonry { columns: 2; column-gap: 22px; }
+  .masonry > .sec { break-inside: avoid; }
+  .map { height: 360px; }
 }
 
 .kouji { height: var(--stripe-h); background: var(--stripe); }
@@ -521,7 +559,8 @@ a:hover { color: var(--link-hover-fg); background: var(--link-hover-bg); }
 main { padding: 14px 14px 26px; min-height: 60vh; }
 h1 { font-size: 20px; margin: 4px 0 6px; padding: 2px 0 4px; color: var(--h1); border-bottom: var(--h1-rule); }
 h1::before { content: var(--h1-mark); color: var(--h1-mark-color); }
-h2 { font-size: 14px; margin: 20px 0 4px; color: var(--h2); }
+.sec { padding-top: 18px; }
+h2 { font-size: 14px; margin: 0 0 4px; color: var(--h2); }
 h2::before { content: var(--h2-mark); color: var(--h2-mark-color); }
 h2::after { content: " :"; }
 .lead { color: var(--muted); margin: 0 0 12px; font-size: 13px; }
@@ -577,9 +616,29 @@ table.list thead th.num { text-align: right; }
 .note.info { background: var(--info-soft); color: var(--text); border-color: var(--info); }
 .note.info::before { content: "※ "; color: var(--info); }
 
-.map { border: 1px solid var(--line); background: #dddddd; border-radius: var(--radius); overflow: hidden; }
-.map iframe { display: block; width: 100%; height: 320px; border: 0; }
-:root:not([data-theme]) .map iframe, :root[data-theme="mono"] .map iframe { filter: grayscale(1); }
+.map { height: 300px; border: 1px solid var(--line); background: #dddddd; border-radius: var(--radius); overflow: hidden; z-index: 0; }
+.map .leaflet-control-attribution { font: 11px/1.4 Arial, sans-serif; }
+:root:not([data-theme]) .map .leaflet-tile-pane, :root[data-theme="mono"] .map .leaflet-tile-pane { filter: grayscale(1); }
+
+.worldmap { border: 1px solid var(--line); background: var(--sea); border-radius: var(--radius); overflow: hidden; }
+.worldmap svg { display: block; width: 100%; height: auto; }
+.worldmap .land { fill: var(--land); stroke: var(--land-line); stroke-width: .5; stroke-linejoin: round; }
+.worldmap .pin circle { r: 7.5px; stroke: #ffffff; stroke-width: 1.2; }
+.worldmap .pin text { font: bold 10px/1 Arial, sans-serif; text-anchor: middle; dominant-baseline: central; fill: #ffffff; pointer-events: none; }
+.worldmap .pin.ok circle { fill: var(--pin-ok); }
+.worldmap .pin.warn circle { fill: var(--pin-warn); }
+.worldmap .pin.bad circle { fill: var(--pin-bad); stroke: var(--pin-bad-mark); }
+.worldmap .pin.bad text { fill: var(--pin-bad-mark); }
+@media (max-width: 640px) {
+  /* 小さい画面では地図が縮むので、印を相対的に大きくする */
+  .worldmap .pin circle { r: 11px; stroke-width: 2; }
+  .worldmap .pin text { font-size: 15px; }
+}
+.legend { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 6px 2px 0; font-size: 12px; color: var(--muted); }
+.legend .dot { display: inline-block; width: 16px; height: 16px; border-radius: 50%; font: bold 11px/16px Arial, sans-serif; text-align: center; color: #ffffff; border: 1px solid #ffffff; box-shadow: 0 0 0 1px var(--line); }
+.legend .dot.ok { background: var(--pin-ok); }
+.legend .dot.warn { background: var(--pin-warn); }
+.legend .dot.bad { background: var(--pin-bad); color: var(--pin-bad-mark); }
 
 .dns-form { display: grid; grid-template-columns: 1fr auto auto; gap: 6px; margin-bottom: 8px; }
 .dns-adv { grid-column: 1 / -1; color: var(--muted); font-size: 13px; }
