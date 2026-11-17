@@ -340,17 +340,25 @@ const txtFields = (answer) => answer.data.replace(/^"|"$/g, '').replace(/" "/g, 
 async function ipLookup(params) {
   const ip = parseIp(params.get('q') || '');
   if (!ip) throw new Error('IPアドレスの形式が正しくありません（例: 8.8.8.8、2001:4860:4860::8888）');
+  return lookupIp(ip);
+}
+
+async function lookupIp(ip) {
   const special = specialRange(ip);
-  const out = { ip: ip.text, version: ip.version, special, ptr: [], asn: null, rdap: null, errors: {} };
+  const out = { ip: ip.text, version: ip.version, special, ptr: [], asn: null, geo: null, rdap: null, errors: {} };
   if (special) return out;
 
   const rev = reversedLabels(ip);
-  const [ptr, origin, rdap] = await Promise.allSettled([
+  const [ptr, origin, rdap, geo] = await Promise.allSettled([
     resolve(`${rev}.${ip.version === 4 ? 'in-addr' : 'ip6'}.arpa`, 'PTR'),
     // Team Cymru のIP→AS番号対応表（DNSで引ける公開サービス）
     resolve(`${rev}.${ip.version === 4 ? 'origin' : 'origin6'}.asn.cymru.com`, 'TXT'),
     rdapFetch(`ip/${ip.text}`),
+    geoLookup(ip.text),
   ]);
+
+  if (geo.status === 'fulfilled') out.geo = geo.value;
+  else out.errors.geo = geo.reason.message;
 
   if (ptr.status === 'fulfilled') out.ptr = ptr.value.answers.filter((a) => a.type === 'PTR').map((a) => a.data);
   else out.errors.ptr = ptr.reason.message;
@@ -389,6 +397,25 @@ async function ipLookup(params) {
   } else out.errors.rdap = rdap.reason.message;
 
   return out;
+}
+
+// IPのおおよその所在地。無料で鍵の要らない ipwho.is を使う（別のサービスに替えるならこの関数だけ直す）
+async function geoLookup(ipText) {
+  const res = await fetch(`https://ipwho.is/${encodeURIComponent(ipText)}`, { signal: AbortSignal.timeout(6000) });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const g = await res.json();
+  if (g.success === false) throw new Error(g.message || '所在地を取得できません');
+  return {
+    countryCode: g.country_code || null,
+    region: g.region || null,
+    city: g.city || null,
+    postal: g.postal || null,
+    lat: typeof g.latitude === 'number' ? g.latitude : null,
+    lon: typeof g.longitude === 'number' ? g.longitude : null,
+    timezone: g.timezone?.id || null,
+    isp: g.connection?.isp || null,
+    org: g.connection?.org || null,
+  };
 }
 
 // ---------- RDAP ----------
@@ -448,14 +475,22 @@ async function domainLookup(params) {
       }
     }),
   );
-  const [dnsRecords, registration] = await Promise.all([dnsJob, registrationLookup(candidates)]);
+  // 最初のA（なければAAAA）レコードのIPについて、所在地なども合わせて調べる
+  const ipJob = dnsJob
+    .then((recs) => {
+      const first = ['A', 'AAAA'].flatMap((t) => recs.find((r) => r.type === t)?.answers || []).find((a) => a.type === 'A' || a.type === 'AAAA');
+      const ip = first && parseIp(first.data);
+      return ip ? lookupIp(ip) : null;
+    })
+    .catch(() => null);
+  const [dnsRecords, registration, ip] = await Promise.all([dnsJob, registrationLookup(candidates), ipJob]);
 
   // CNAMEはAの問い合わせにも付いてくるので、重複を除く
   const cname = dnsRecords.find((r) => r.type === 'CNAME');
   const a = dnsRecords.find((r) => r.type === 'A');
   if (a?.answers && cname?.answers?.length) a.answers = a.answers.filter((x) => x.type === 'A');
 
-  return { query: name, ...registration, dns: dnsRecords };
+  return { query: name, ip, ...registration, dns: dnsRecords };
 }
 
 async function registrationLookup(candidates) {

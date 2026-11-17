@@ -103,6 +103,7 @@ async function initIp() {
         ['大陸', geo.continent],
       ]),
     ),
+    ...(mapFrame(geo.latitude, geo.longitude) ? section('あなたの場所（IPからの推定）', mapFrame(geo.latitude, geo.longitude)) : []),
     ...section(
       'ネットワーク',
       kvTable([
@@ -637,61 +638,101 @@ async function runSearch(tab, api, q, render) {
 
 // ---------- IPアドレスの結果 ----------
 
+// 国コード（JP など）を国旗の絵文字にする
+const flag = (cc) => (/^[a-z]{2}$/i.test(cc || '') ? String.fromCodePoint(...[...cc.toUpperCase()].map((c) => 0x1f1a5 + c.charCodeAt(0))) : '');
+
+function localTime(timeZone) {
+  try {
+    return new Date().toLocaleString('ja-JP', { timeZone, dateStyle: 'medium', timeStyle: 'medium' });
+  } catch {
+    return null;
+  }
+}
+
+function mapFrame(lat, lon) {
+  lat = Number(lat);
+  lon = Number(lon);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+  const bbox = [lon - 6, Math.max(lat - 3.2, -85), lon + 6, Math.min(lat + 3.2, 85)].map((n) => n.toFixed(4)).join(',');
+  const src = `https://www.openstreetmap.org/export/embed.html?bbox=${encodeURIComponent(bbox)}&layer=mapnik&marker=${lat},${lon}`;
+  return el('div', { class: 'map' }, el('iframe', { src, loading: 'lazy', title: '地図', referrerpolicy: 'no-referrer' }));
+}
+
+// IPの結果の本体。ドメイン検索では brief=true で登録情報を省く
+function ipSections(d, { brief = false } = {}) {
+  const { asn, rdap, geo } = d;
+  const cc = geo?.countryCode || asn?.country || rdap?.country;
+  const out = [
+    ...section(
+      'IPアドレス',
+      kvTable([
+        ['IPアドレス', brief ? ipLink(d.ip) : `${d.ip}（IPv${d.version}）`],
+        ['ホスト名（逆引き）', lines(d.ptr.map(domainLink))],
+      ]),
+    ),
+    ...section(
+      'IPの所在地（推定）',
+      kvTable([
+        ['国', cc ? `${flag(cc)} ${regionName(cc)}` : null],
+        geo && ['都道府県・州', geo.region],
+        geo && ['市区町村', geo.city],
+        geo && ['ISP', geo.isp],
+        ['組織', geo?.org || rdap?.name],
+        ['ネットワーク', asn ? `AS${asn.asn} ${asn.name || ''}` : null],
+        ['経路（プレフィックス）', asn?.prefix],
+        geo?.timezone && ['タイムゾーン', geo.timezone],
+        geo?.timezone && ['現地時刻', localTime(geo.timezone)],
+        geo?.lat !== null && geo?.lat !== undefined && ['緯度・経度', `${geo.lat}, ${geo.lon}`],
+      ]),
+      el('p', { class: 'sub', style: 'margin:6px 2px 0' }, geo ? '位置はIPからの推定です。実際の場所と大きくずれることがあります。' : '国はアドレスの登録上のもので、実際に使われている場所とは限りません。'),
+    ),
+  ];
+  const map = geo && mapFrame(geo.lat, geo.lon);
+  if (map) out.push(...section('このIPの場所', map));
+  if (brief) return out;
+
+  if (rdap) {
+    out.push(
+      ...section(
+        'ネットワークの登録情報',
+        kvTable([
+          ['ネットワーク名', rdap.name],
+          ['範囲', rdap.start && rdap.end ? `${rdap.start} – ${rdap.end}` : null],
+          ['CIDR', lines(rdap.cidr)],
+          ['種別', rdap.type],
+          ['ハンドル', rdap.handle],
+          ['上位ネットワーク', rdap.parent],
+          ['割り当て元', asn?.registry?.toUpperCase()],
+          ['登録日', fmtDate(rdap.events.registration || asn?.allocated)],
+          ['最終更新', fmtDate(rdap.events['last changed'])],
+          ['WHOISサーバー', rdap.source],
+        ]),
+      ),
+      ...section('連絡先', entitiesTable(rdap.entities)),
+      ...(rdap.remarks.length ? section('備考', el('div', { class: 'card' }, el('pre', { class: 'raw' }, rdap.remarks.join('\n')))) : []),
+    );
+  } else if (!d.errors.rdap) out.push(note('warn', 'このIPの登録情報は見つかりませんでした。'));
+  return out;
+}
+
+const IP_ERROR_LABEL = { ptr: '逆引き', asn: 'AS番号', rdap: '登録情報', geo: '所在地' };
+const ipErrors = (d) => Object.keys(d.errors).map((k) => `${IP_ERROR_LABEL[k]}: ${d.errors[k]}`).join('、');
+
 function renderIp(d, hero, body) {
   if (d.special) {
     hero.replaceChildren(stat('IPアドレス', d.ip, `IPv${d.version}`, true));
     body.replaceChildren(note('info', `${d.ip} は${d.special}です。インターネット上の登録情報はありません。`));
     return;
   }
-  const { asn, rdap } = d;
-  const country = asn?.country || rdap?.country;
+  const { asn, rdap, geo } = d;
+  const cc = geo?.countryCode || asn?.country || rdap?.country;
   hero.replaceChildren(
     stat('IPアドレス', d.ip, `IPv${d.version}`, true),
-    stat('事業者', asn?.name || rdap?.name, asn ? `AS${asn.asn}` : null),
-    stat('登録国', regionName(country)),
-    stat('逆引きホスト名', d.ptr[0] || null, d.ptr.length > 1 ? `ほか${d.ptr.length - 1}件` : null),
+    stat('事業者', geo?.isp || asn?.name || rdap?.name, asn ? `AS${asn.asn}` : null),
+    stat('場所（推定）', [geo?.city, geo?.region].filter(Boolean).join(', ') || regionName(cc), geo?.city ? regionName(cc) : null),
+    stat('ホスト名', d.ptr[0] || null, d.ptr.length > 1 ? `ほか${d.ptr.length - 1}件` : null),
   );
-
-  const failed = Object.keys(d.errors);
-  const LABEL = { ptr: '逆引き', asn: 'AS番号', rdap: '登録情報' };
-  fill(body,
-    failed.length ? note('warn', `一部の情報を取得できませんでした（${failed.map((k) => `${LABEL[k]}: ${d.errors[k]}`).join('、')}）`) : null,
-    ...section(
-      '経路とAS',
-      kvTable([
-        ['逆引きホスト名', lines(d.ptr.map(domainLink))],
-        ['AS番号', asn ? `AS${asn.asn}` : null],
-        ['AS名', asn?.name],
-        ['経路（プレフィックス）', asn?.prefix],
-        ['割り当て元', asn?.registry?.toUpperCase()],
-        ['割り当て日', fmtDate(asn?.allocated)],
-        ['登録国', regionName(country)],
-      ]),
-      el('p', { class: 'sub', style: 'margin:6px 2px 0' }, '登録国はアドレスが割り当てられた先の国で、実際に使われている場所とは限りません。'),
-    ),
-    ...(rdap
-      ? [
-          ...section(
-            'ネットワークの登録情報',
-            kvTable([
-              ['ネットワーク名', rdap.name],
-              ['範囲', rdap.start && rdap.end ? `${rdap.start} – ${rdap.end}` : null],
-              ['CIDR', lines(rdap.cidr)],
-              ['種別', rdap.type],
-              ['ハンドル', rdap.handle],
-              ['上位ネットワーク', rdap.parent],
-              ['登録日', fmtDate(rdap.events.registration)],
-              ['最終更新', fmtDate(rdap.events['last changed'])],
-              ['WHOISサーバー', rdap.source],
-            ]),
-          ),
-          ...section('連絡先', entitiesTable(rdap.entities)),
-          ...(rdap.remarks.length ? section('備考', el('div', { class: 'card' }, el('pre', { class: 'raw' }, rdap.remarks.join('\n')))) : []),
-        ]
-      : d.errors.rdap
-        ? []
-        : [note('warn', 'このIPの登録情報は見つかりませんでした。')]),
-  );
+  fill(body, ipErrors(d) ? note('warn', `一部の情報を取得できませんでした（${ipErrors(d)}）`) : null, ...ipSections(d));
 }
 
 // ---------- ドメインの結果 ----------
@@ -718,13 +759,17 @@ function renderDomain(d, hero, body) {
   let regNote = null;
   if (!d.registered) regNote = note('warn', `登録情報が見つかりませんでした。未登録か、このドメインの種類では登録情報が公開されていない可能性があります。${errs.length ? `（${errs.join('、')}）` : ''}`);
 
+  const ip = d.ip && !d.special ? d.ip : null;
   fill(body,
     regNote,
+    ...(ip && !ip.special ? [...ipSections(ip, { brief: true }), el('p', { style: 'margin:8px 2px 0' }, el('a', { href: `#lookup?q=${encodeURIComponent(ip.ip)}` }, `${ip.ip} の登録情報をさらに詳しく →`))] : []),
     ...(r
       ? [
           ...section(
-            '登録情報',
+            'ドメインの登録情報',
             kvTable([
+              ['ドメイン名', d.registered],
+              ['レジストラ', r.registrar?.name],
               ['状態', lines(r.status)],
               ['ネームサーバー', lines(r.nameservers)],
               ['DNSSEC', r.dnssec === null ? null : r.dnssec ? '署名あり' : '署名なし'],
@@ -757,6 +802,28 @@ function renderDomain(d, hero, body) {
     ),
   );
 }
+
+// ---------- 平成風の飾り ----------
+
+// 「あなたの情報は丸見えです」バナー。見えている情報をそのまま出すだけで、保存はしない
+getInfo()
+  .then((info) => {
+    if (!info.ip) return;
+    const where = [info.geo.city, info.geo.country].filter(Boolean).join(', ');
+    const detail = [where, info.network.asOrganization].filter(Boolean).join(' / ');
+    $('#peek-text').textContent = `あなたのIPアドレス ${info.ip}${detail ? `（${detail}）` : ''} は、このサイトから丸見えです！！`;
+    $('#peek').hidden = false;
+  })
+  .catch(() => {});
+
+// 訪問回数はこのブラウザの中だけで数える（サーバーには送らない）
+let visits = 1;
+try {
+  visits = Number(localStorage.getItem('netcheck-visits') || 0) + 1;
+  localStorage.setItem('netcheck-visits', String(visits));
+} catch {}
+$('#counter').replaceChildren(...String(visits).padStart(6, '0').split('').map((n) => el('span', {}, n)));
+if (visits % 100 === 0 || /^(\d)\1+$/.test(String(visits)) && visits > 10) $('#kiriban').hidden = false;
 
 // ---------- タブ切り替え ----------
 

@@ -8,9 +8,14 @@
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>
+<div class="page">
 <header class="top">
-  <div class="wrap top-inner">
+  <div class="marquee" aria-hidden="true"><span>★☆★ ようこそ NetCheck へ ★☆★　あなたのIPアドレス・ブラウザ・画面サイズ・フォントまで、ぜ～んぶ見えちゃいます　……　ブックマークはトップページにお願いします　……　キリ番を踏んだ方はご一報ください　★☆★</span></div>
+  <div class="title-row">
     <a class="brand" href="#ip">NetCheck</a>
+    <div class="tagline">～ あなたの接続情報 まるみえ診断 ～</div>
+  </div>
+  <p id="peek" class="peek" hidden><b class="blink">！警告！</b> <span id="peek-text"></span></p>
     <nav class="tabs" role="tablist" aria-label="診断ツール">
       <button role="tab" data-tab="ip">IP・接続</button>
       <button role="tab" data-tab="browser">ブラウザ</button>
@@ -27,10 +32,10 @@
       <option value="dns">DNS伝播</option>
       <option value="lookup">IP・ドメイン検索</option>
     </select>
-  </div>
 </header>
+<div class="kouji" aria-hidden="true"></div>
 
-<main class="wrap">
+<main>
   <section data-panel="ip" hidden>
     <h1>IP・接続情報</h1>
     <p class="lead">このサイトのサーバーから見えている、あなたの接続の情報です。</p>
@@ -91,9 +96,16 @@
   </section>
 </main>
 
-<footer class="wrap foot">
-  <p>IP・接続情報と、DNS・IP・ドメインの検索だけがサーバーを経由します。それ以外はブラウザ内で完結します。</p>
+<div class="kouji" aria-hidden="true"></div>
+<footer class="foot">
+  <p>あなたは <span id="counter" class="counter"></span> 回目のご訪問です</p>
+  <p id="kiriban" class="kiriban" hidden>☆ キリ番ゲット！おめでとうございます ☆</p>
+  <p><span class="banner">NetCheck</span> このページはリンクフリーです</p>
+  <p>Sorry, this page is Japanese only. ／ 推奨環境: 800×600 以上、Internet Explorer 5.5 以上（うそです）</p>
+  <p class="honest">※ 見た目は怪しいですが、表示した情報はどこにも保存していません。IP・接続情報と、DNS・IP・ドメインの検索だけがサーバーを経由します。訪問回数はこのブラウザの中だけで数えています。</p>
+  <p>Copyright (C) 2026 NetCheck All Rights Reserved.</p>
 </footer>
+</div>
 
 <script src="/app.js" type="module"></script>
 </body>
