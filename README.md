@@ -61,7 +61,9 @@ Workers は他の利用者と出口のIPを共有しているため、無料の�
 そこで次の2つは、訪問者のブラウザから直接問い合わせる（`public/app.js` の `geoLookup` / `enrichIp` / `enrichDomain`）。
 
 - IPの所在地：ipwho.is、断られたら ipapi.co
-- 登録情報（RDAP）：まずサーバーが rdap.org に聞き、失敗したときだけブラウザが rdap.org に聞き直す
+- 登録情報（RDAP）：サーバーが rdap.org → 地域の登録機関のRDAP → 従来のWHOIS（TCP 43番）の順に試す。
+  全部失敗したときだけ、ブラウザが rdap.org → 登録機関のRDAP の順に聞き直す。
+  失敗時のエラー文には、失敗したサーバー名が入る（例: `HTTP 525 (rdap.apnic.net)`）
 - 証明書の発行履歴：まずサーバーが crt.sh に聞き、失敗したときだけブラウザが crt.sh に聞き直す
 
 RDAPの応答を整える処理は `public/rdap.js` にあり、サーバーとブラウザの両方が読み込む。

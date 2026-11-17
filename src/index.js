@@ -1,7 +1,7 @@
 // NetCheck Worker: /api/info（接続情報）、/api/dns（DNS伝播）、/api/ip（IP検索）、/api/domain（ドメイン検索）
 // 静的ファイルは wrangler.jsonc の assets 設定で public/ から配信される。
 
-import { parseIpRdap, parseDomainRdap } from '../public/rdap.js';
+import { parseIpRdap, parseDomainRdap, rdapIpUrls } from '../public/rdap.js';
 import { normalizeCerts, certsUrl } from '../public/certs.js';
 
 const TYPES = { A: 1, NS: 2, CNAME: 5, SOA: 6, PTR: 12, MX: 15, TXT: 16, AAAA: 28, SRV: 33, CAA: 257 };
@@ -379,7 +379,7 @@ async function lookupIp(ip) {
   const special = specialRange(ip);
   // geo（所在地）はここでは埋めない。Workers は他の利用者と出口のIPを共有していて、無料の所在地サービスに
   // 回数制限で断られるため、訪問者のブラウザから直接問い合わせる（public/app.js の geoLookup）
-  const out = { ip: ip.text, version: ip.version, special, ptr: [], asn: null, geo: null, rdap: null, tor: null, errors: {} };
+  const out = { ip: ip.text, version: ip.version, special, ptr: [], asn: null, geo: null, rdap: null, whois: null, tor: null, errors: {} };
   if (special) return out;
 
   const rev = reversedLabels(ip);
@@ -409,29 +409,83 @@ async function lookupIp(ip) {
   } else out.errors.asn = origin.reason.message;
 
   if (rdap.status === 'fulfilled') {
-    const r = rdap.value;
-    if (r) {
-      out.rdap = parseIpRdap(r);
+    if (rdap.value) out.rdap = parseIpRdap(rdap.value);
+  } else {
+    // rdap.org 経由で取れなかったときの予備の経路：
+    // 1) 地域の登録機関（APNIC など）のRDAPへ直接  2) 同じ機関の従来のWHOIS（TCP 43番）
+    const registry = out.asn?.registry;
+    let error = rdap.reason;
+    for (const url of rdapIpUrls(ip.text, registry).slice(1)) {
+      try {
+        const r = await rdapGet(url);
+        if (r) out.rdap = parseIpRdap(r);
+        error = null;
+        break;
+      } catch (e) {
+        error = e;
+      }
     }
-  } else out.errors.rdap = rdap.reason.message;
+    if (error) {
+      try {
+        out.whois = await ipWhois(ip.text, registry);
+      } catch {
+        out.errors.rdap = error.message; // どちらも駄目なら、画面側がブラウザから聞き直す
+      }
+    }
+  }
 
   return out;
 }
 
+const RIR_WHOIS = { arin: 'whois.arin.net', ripencc: 'whois.ripe.net', apnic: 'whois.apnic.net', lacnic: 'whois.lacnic.net', afrinic: 'whois.afrinic.net' };
+
+async function ipWhois(ipText, registry) {
+  let server = RIR_WHOIS[String(registry || '').toLowerCase()];
+  if (!server) {
+    // 担当の登録機関が分からないときは、IANA に聞くと紹介先（refer）を教えてくれる
+    const iana = await whoisQuery('whois.iana.org', ipText);
+    server = /^(?:refer|whois):\s*(\S+)/im.exec(iana)?.[1];
+    if (!server) throw new Error('no_whois_server');
+  }
+  const text = (await whoisQuery(server, server === 'whois.arin.net' ? `n + ${ipText}` : ipText)).trim();
+  if (!text) throw new Error('bad_response');
+  return { server, text: text.slice(0, 20000) };
+}
+
 // ---------- RDAP ----------
 
-// rdap.org は、問い合わせ先の正しいレジストリへ転送してくれる公開の振り分けサービス
-async function rdapFetch(path) {
-  const res = await fetch(`https://rdap.org/${path}`, {
-    // Workers の fetch は User-Agent を付けないので明示する（無いと 403 で断るサーバーがある）。
-    // ここで失敗しても、画面側がブラウザから直接問い合わせ直す（public/app.js の enrich*）
-    headers: { accept: 'application/rdap+json, application/json', 'user-agent': 'NetCheck/1.0 (RDAP lookup)' },
-    signal: AbortSignal.timeout(8000),
-  });
-  if (res.status === 404) return null;
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
+// RDAPの問い合わせ。転送を1段ずつ自分で追い、失敗したらどのサーバーで失敗したかをエラーに含める
+// （rdap.org は正しい登録機関へ転送するだけなので、転送先で失敗することがある）
+async function rdapGet(url) {
+  for (let hop = 0; hop < 6; hop++) {
+    const host = new URL(url).hostname;
+    let res;
+    try {
+      res = await fetch(url, {
+        redirect: 'manual',
+        // Workers の fetch は User-Agent を付けないので明示する（無いと断るサーバーがある）
+        headers: { accept: 'application/rdap+json, application/json', 'user-agent': 'NetCheck/1.0 (RDAP lookup)' },
+        signal: AbortSignal.timeout(7000),
+      });
+    } catch (e) {
+      const timeout = e.name === 'TimeoutError' || e.name === 'AbortError';
+      throw new Error(`${timeout ? 'timeout' : e.message || e} (${host})`);
+    }
+    const location = res.headers.get('location');
+    if (res.status >= 300 && res.status < 400 && location) {
+      res.body?.cancel().catch(() => {});
+      url = new URL(location, url).href;
+      continue;
+    }
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`HTTP ${res.status} (${host})`);
+    return res.json();
+  }
+  throw new Error('too many redirects');
 }
+
+// rdap.org は、問い合わせ先の正しい登録機関へ転送してくれる公開の振り分けサービス
+const rdapFetch = (path) => rdapGet(`https://rdap.org/${path}`);
 
 // ---------- /api/domain ----------
 

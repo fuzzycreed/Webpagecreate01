@@ -2,7 +2,7 @@
 // 表示言語は英語が標準で、ヘッダー右上の Lang プルダウンで切り替える（I18N に言語を足せば増やせる）。
 
 import { I18N } from './i18n.js';
-import { parseIpRdap, parseDomainRdap } from './rdap.js';
+import { parseIpRdap, parseDomainRdap, rdapIpUrls } from './rdap.js';
 import { normalizeCerts, certsUrl } from './certs.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -826,12 +826,17 @@ async function enrichIp(d, { registration = true } = {}) {
   ];
   if (registration && d.errors.rdap) {
     jobs.push(
-      fetchJson(`https://rdap.org/ip/${d.ip}`)
-        .then((r) => {
-          if (r) d.rdap = parseIpRdap(r);
-          delete d.errors.rdap;
-        })
-        .catch(() => {}),
+      (async () => {
+        // rdap.org、だめなら地域の登録機関へ直接、の順に試す
+        for (const url of rdapIpUrls(d.ip, d.asn?.registry)) {
+          try {
+            const r = await fetchJson(url);
+            if (r) d.rdap = parseIpRdap(r);
+            delete d.errors.rdap;
+            return;
+          } catch {}
+        }
+      })(),
     );
   }
   await Promise.all(jobs);
@@ -941,6 +946,9 @@ function ipSections(d, { brief = false } = {}) {
         ],
       ),
     );
+  } else if (d.whois) {
+    // RDAPで取れず、従来のWHOISで取れたときは、その生のテキストを出す
+    out.push(...section(`WHOIS${t('paren', d.whois.server)}`, el('div', { class: 'card' }, el('pre', { class: 'raw' }, d.whois.text))));
   } else if (!d.errors.rdap) out.push(note('warn', t('lk.noIpReg')));
   return out;
 }

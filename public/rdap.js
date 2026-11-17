@@ -53,3 +53,20 @@ export function parseDomainRdap(r) {
     source: r.port43 || null,
   };
 }
+
+// 各地域の登録機関（RIR）のRDAP。registry は Team Cymru が返す名前（apnic、ripencc など）
+const RIR_RDAP = {
+  arin: 'https://rdap.arin.net/registry/ip/',
+  ripencc: 'https://rdap.db.ripe.net/ip/',
+  apnic: 'https://rdap.apnic.net/ip/',
+  lacnic: 'https://rdap.lacnic.net/rdap/ip/',
+  afrinic: 'https://rdap.afrinic.net/rdap/ip/',
+};
+
+// IPの登録情報を聞く先の候補。先頭から順に試す
+export function rdapIpUrls(ip, registry) {
+  const urls = [`https://rdap.org/ip/${ip}`];
+  const direct = RIR_RDAP[String(registry || '').toLowerCase()];
+  if (direct) urls.push(direct + ip);
+  return urls;
+}
