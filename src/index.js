@@ -11,37 +11,38 @@ const RESOLVERS = [
   { id: 'cloudflare', label: 'Cloudflare', note: '1.1.1.1', url: 'https://cloudflare-dns.com/dns-query' },
   { id: 'quad9', label: 'Quad9', note: '9.9.9.9', url: 'https://dns.quad9.net/dns-query' },
   { id: 'opendns', label: 'OpenDNS (Cisco)', note: '208.67.222.222', url: 'https://doh.opendns.com/dns-query' },
-  { id: 'adguard', label: 'AdGuard (フィルターなし)', note: '94.140.14.140', url: 'https://unfiltered.adguard-dns.com/dns-query' },
+  { id: 'adguard', label: 'AdGuard (unfiltered)', note: '94.140.14.140', url: 'https://unfiltered.adguard-dns.com/dns-query' },
   { id: 'nextdns', label: 'NextDNS', note: 'anycast', url: 'https://dns.nextdns.io/dns-query' },
   { id: 'mullvad', label: 'Mullvad', note: '194.242.2.2', url: 'https://dns.mullvad.net/dns-query' },
   { id: 'controld', label: 'Control D', note: '76.76.2.0', url: 'https://freedns.controld.com/p0' },
   { id: 'dnssb', label: 'DNS.SB', note: '185.222.222.222', url: 'https://doh.dns.sb/dns-query' },
-  { id: 'iij', label: 'IIJ Public DNS', note: '日本', url: 'https://public.dns.iij.jp/dns-query' },
-  { id: 'alidns', label: 'AliDNS', note: '中国 223.5.5.5', url: 'https://dns.alidns.com/dns-query' },
-  { id: 'dnspod', label: 'DNSPod (Tencent)', note: '中国 119.29.29.29', url: 'https://doh.pub/dns-query' },
+  { id: 'iij', label: 'IIJ Public DNS', note: 'JP', url: 'https://public.dns.iij.jp/dns-query' },
+  { id: 'alidns', label: 'AliDNS', note: 'CN · 223.5.5.5', url: 'https://dns.alidns.com/dns-query' },
+  { id: 'dnspod', label: 'DNSPod (Tencent)', note: 'CN · 119.29.29.29', url: 'https://doh.pub/dns-query' },
 ];
 
 // EDNS Client Subnet で「その地域のユーザーから来た問い合わせ」を擬似的に再現する。
 // サブネットは各国の大手ISPの代表的な帯域（おおよその目安）。
 const ECS_RESOLVER = 'https://dns.google/dns-query';
 const LOCATIONS = [
-  { id: 'jp', label: '日本', flag: '🇯🇵', ecs: '126.0.0.0/24' },
-  { id: 'kr', label: '韓国', flag: '🇰🇷', ecs: '121.128.0.0/24' },
-  { id: 'sg', label: 'シンガポール', flag: '🇸🇬', ecs: '220.255.0.0/24' },
-  { id: 'in', label: 'インド', flag: '🇮🇳', ecs: '117.192.0.0/24' },
-  { id: 'au', label: 'オーストラリア', flag: '🇦🇺', ecs: '58.160.0.0/24' },
-  { id: 'de', label: 'ドイツ', flag: '🇩🇪', ecs: '84.128.0.0/24' },
-  { id: 'gb', label: 'イギリス', flag: '🇬🇧', ecs: '86.128.0.0/24' },
-  { id: 'fr', label: 'フランス', flag: '🇫🇷', ecs: '90.0.0.0/24' },
-  { id: 'us-e', label: 'アメリカ (Comcast)', flag: '🇺🇸', ecs: '73.0.0.0/24' },
-  { id: 'us-w', label: 'アメリカ (AT&T)', flag: '🇺🇸', ecs: '99.0.0.0/24' },
-  { id: 'br', label: 'ブラジル', flag: '🇧🇷', ecs: '177.0.0.0/24' },
-  { id: 'za', label: '南アフリカ', flag: '🇿🇦', ecs: '41.0.0.0/24' },
+  { id: 'jp', cc: 'JP', ecs: '126.0.0.0/24' },
+  { id: 'kr', cc: 'KR', ecs: '121.128.0.0/24' },
+  { id: 'sg', cc: 'SG', ecs: '220.255.0.0/24' },
+  { id: 'in', cc: 'IN', ecs: '117.192.0.0/24' },
+  { id: 'au', cc: 'AU', ecs: '58.160.0.0/24' },
+  { id: 'de', cc: 'DE', ecs: '84.128.0.0/24' },
+  { id: 'gb', cc: 'GB', ecs: '86.128.0.0/24' },
+  { id: 'fr', cc: 'FR', ecs: '90.0.0.0/24' },
+  { id: 'us-e', cc: 'US', isp: 'Comcast', ecs: '73.0.0.0/24' },
+  { id: 'us-w', cc: 'US', isp: 'AT&T', ecs: '99.0.0.0/24' },
+  { id: 'br', cc: 'BR', ecs: '177.0.0.0/24' },
+  { id: 'za', cc: 'ZA', ecs: '41.0.0.0/24' },
 ];
 
 export default {
   async fetch(request) {
     const url = new URL(request.url);
+    // エラーは短いコード（bad_name など）で返し、画面側が表示言語に合わせて文言にする
     try {
       if (url.pathname === '/api/info') return json(info(request));
       if (url.pathname === '/api/dns') return json(await dns(url.searchParams));
@@ -82,17 +83,17 @@ function info(request) {
 
 async function dns(params) {
   const type = (params.get('type') || 'A').toUpperCase();
-  if (!TYPES[type]) throw new Error(`未対応のレコードタイプです: ${type}`);
+  if (!TYPES[type]) throw new Error('bad_type');
   const name = normalizeName(params.get('name') || '');
   const customEcs = params.get('ecs');
 
   const jobs = [
     ...RESOLVERS.map((r) => ({ group: 'resolver', id: r.id, label: r.label, note: r.note, url: r.url })),
-    ...LOCATIONS.map((l) => ({ group: 'geo', id: l.id, label: l.label, flag: l.flag, note: l.ecs, url: ECS_RESOLVER, ecs: l.ecs })),
+    ...LOCATIONS.map((l) => ({ group: 'geo', id: l.id, cc: l.cc, isp: l.isp, note: l.ecs, url: ECS_RESOLVER, ecs: l.ecs })),
   ];
   if (customEcs) {
     parseEcs(customEcs); // 不正ならここで例外
-    jobs.push({ group: 'geo', id: 'custom', label: '指定サブネット', flag: '📍', note: customEcs, url: ECS_RESOLVER, ecs: customEcs });
+    jobs.push({ group: 'geo', id: 'custom', note: customEcs, url: ECS_RESOLVER, ecs: customEcs });
   }
 
   const results = await Promise.all(
@@ -103,7 +104,7 @@ async function dns(params) {
         return { ...meta, ms: Date.now() - started, ...msg };
       } catch (e) {
         const timeout = e.name === 'TimeoutError' || e.name === 'AbortError';
-        return { ...meta, ms: Date.now() - started, error: timeout ? 'タイムアウト' : e.message || String(e) };
+        return { ...meta, ms: Date.now() - started, error: timeout ? 'timeout' : e.message || String(e) };
       }
     }),
   );
@@ -136,25 +137,25 @@ async function resolve(name, type) {
 
 function normalizeName(input) {
   let s = input.trim().replace(/^[a-z]+:\/\//i, '').replace(/[/?#].*$/, '').replace(/\.$/, '');
-  if (!s) throw new Error('ドメイン名を入力してください');
+  if (!s) throw new Error('name_required');
   let host;
   try {
     host = new URL(`http://${s}`).hostname; // 日本語ドメインなどを punycode に変換
   } catch {
-    throw new Error('ドメイン名の形式が正しくありません');
+    throw new Error('bad_name');
   }
   if (host.length > 253 || !/^[a-z0-9_]([a-z0-9_-]*[a-z0-9_])?(\.[a-z0-9_]([a-z0-9_-]*[a-z0-9_])?)*$/i.test(host)) {
-    throw new Error('ドメイン名の形式が正しくありません');
+    throw new Error('bad_name');
   }
   return host;
 }
 
 function parseEcs(ecs) {
   const m = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})(?:\/(\d{1,2}))?$/.exec(ecs.trim());
-  if (!m) throw new Error('サブネットは 203.0.113.0/24 の形式（IPv4）で指定してください');
+  if (!m) throw new Error('bad_ecs');
   const bytes = m.slice(1, 5).map(Number);
   const prefix = m[5] === undefined ? 24 : Number(m[5]);
-  if (bytes.some((b) => b > 255) || prefix < 8 || prefix > 32) throw new Error('サブネットの値が範囲外です');
+  if (bytes.some((b) => b > 255) || prefix < 8 || prefix > 32) throw new Error('bad_ecs');
   return { bytes, prefix };
 }
 
@@ -165,7 +166,7 @@ function encodeQuery(name, qtype, ecs) {
   const out = [0, 0, 0x01, 0x00, 0, 1, 0, 0, 0, 0, 0, 1]; // ID=0, RD=1, QD=1, AR=1(OPT)
   for (const label of name.split('.')) {
     const b = enc.encode(label);
-    if (!b.length || b.length > 63) throw new Error('ドメイン名の形式が正しくありません');
+    if (!b.length || b.length > 63) throw new Error('bad_name');
     out.push(b.length, ...b);
   }
   out.push(0, qtype >> 8, qtype & 255, 0, 1);
@@ -181,7 +182,7 @@ function encodeQuery(name, qtype, ecs) {
 }
 
 function decodeResponse(buf) {
-  if (buf.length < 12) throw new Error('応答が不正です');
+  if (buf.length < 12) throw new Error('bad_response');
   const view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
   const rcode = buf[3] & 0x0f;
   const qd = view.getUint16(4);
@@ -208,7 +209,7 @@ function readName(buf, off) {
   const dec = new TextDecoder();
   for (let jumps = 0; jumps < 50; ) {
     const len = buf[off];
-    if (len === undefined) throw new Error('応答が不正です');
+    if (len === undefined) throw new Error('bad_response');
     if (len === 0) {
       off++;
       break;
@@ -304,28 +305,28 @@ function parseIp(input) {
   return { version: 6, groups: nums, text: compressIPv6(nums.map((n) => n.toString(16))) };
 }
 
-// インターネット上で使われない特別なアドレスなら、その説明を返す
+// インターネット上で使われない特別なアドレスなら、その種類のコードを返す（文言は画面側で言語ごとに出す）
 function specialRange(ip) {
   if (ip.version === 4) {
     const [a, b, c] = ip.bytes;
-    if (a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168)) return 'プライベートアドレス（LAN内専用）';
-    if (a === 127) return 'ループバックアドレス（自分自身）';
-    if (a === 169 && b === 254) return 'リンクローカルアドレス';
-    if (a === 100 && b >= 64 && b <= 127) return 'キャリアグレードNAT用の共有アドレス';
-    if (a === 0) return '「このネットワーク」を表す特別なアドレス';
-    if ((a === 192 && b === 0 && c === 2) || (a === 198 && b === 51 && c === 100) || (a === 203 && b === 0 && c === 113)) return '文書の例示用アドレス';
-    if (a === 198 && (b === 18 || b === 19)) return 'ベンチマーク試験用アドレス';
-    if (a >= 224 && a <= 239) return 'マルチキャストアドレス';
-    if (a >= 240) return '予約済みアドレス';
+    if (a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168)) return 'private';
+    if (a === 127) return 'loopback';
+    if (a === 169 && b === 254) return 'linklocal';
+    if (a === 100 && b >= 64 && b <= 127) return 'cgnat';
+    if (a === 0) return 'thisnet';
+    if ((a === 192 && b === 0 && c === 2) || (a === 198 && b === 51 && c === 100) || (a === 203 && b === 0 && c === 113)) return 'doc';
+    if (a === 198 && (b === 18 || b === 19)) return 'benchmark';
+    if (a >= 224 && a <= 239) return 'multicast';
+    if (a >= 240) return 'reserved';
     return null;
   }
   const g = ip.groups;
-  if (g.every((n) => n === 0)) return '未指定アドレス';
-  if (g.slice(0, 7).every((n) => n === 0) && g[7] === 1) return 'ループバックアドレス（自分自身）';
-  if ((g[0] & 0xfe00) === 0xfc00) return 'ユニークローカルアドレス（LAN内専用）';
-  if ((g[0] & 0xffc0) === 0xfe80) return 'リンクローカルアドレス';
-  if ((g[0] & 0xff00) === 0xff00) return 'マルチキャストアドレス';
-  if (g[0] === 0x2001 && g[1] === 0x0db8) return '文書の例示用アドレス';
+  if (g.every((n) => n === 0)) return 'unspecified';
+  if (g.slice(0, 7).every((n) => n === 0) && g[7] === 1) return 'loopback';
+  if ((g[0] & 0xfe00) === 0xfc00) return 'ula';
+  if ((g[0] & 0xffc0) === 0xfe80) return 'linklocal';
+  if ((g[0] & 0xff00) === 0xff00) return 'multicast';
+  if (g[0] === 0x2001 && g[1] === 0x0db8) return 'doc';
   return null;
 }
 
@@ -339,7 +340,7 @@ const txtFields = (answer) => answer.data.replace(/^"|"$/g, '').replace(/" "/g, 
 
 async function ipLookup(params) {
   const ip = parseIp(params.get('q') || '');
-  if (!ip) throw new Error('IPアドレスの形式が正しくありません（例: 8.8.8.8、2001:4860:4860::8888）');
+  if (!ip) throw new Error('bad_ip');
   return lookupIp(ip);
 }
 
@@ -404,7 +405,7 @@ async function geoLookup(ipText) {
   const res = await fetch(`https://ipwho.is/${encodeURIComponent(ipText)}`, { signal: AbortSignal.timeout(6000) });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const g = await res.json();
-  if (g.success === false) throw new Error(g.message || '所在地を取得できません');
+  if (g.success === false) throw new Error(g.message || 'geo_failed');
   return {
     countryCode: g.country_code || null,
     region: g.region || null,
@@ -458,8 +459,8 @@ const DOMAIN_RECORD_TYPES = ['A', 'AAAA', 'CNAME', 'NS', 'MX', 'TXT', 'SOA', 'CA
 async function domainLookup(params) {
   const name = normalizeName(params.get('q') || '');
   const labels = name.split('.');
-  if (labels.length < 2) throw new Error('example.com のように、ドットを含むドメイン名を入力してください');
-  if (parseIp(name)) throw new Error('ドメイン名を入力してください');
+  if (labels.length < 2) throw new Error('need_dot');
+  if (parseIp(name)) throw new Error('name_required');
 
   // www.example.co.jp と入力されても登録情報が見つかるよう、左のラベルを順に外して試す
   const candidates = [];
@@ -523,7 +524,7 @@ async function registrationLookup(candidates) {
     const tld = candidates[0].split('.').pop();
     const iana = await whoisQuery('whois.iana.org', tld);
     const server = /^whois:\s*(\S+)/im.exec(iana)?.[1];
-    if (!server) throw new Error(`.${tld} のWHOISサーバーが見つかりません`);
+    if (!server) throw new Error('no_whois_server');
     for (const domain of candidates.slice(0, 3)) {
       const text = (await whoisQuery(server, server === 'whois.jprs.jp' ? `${domain}/e` : domain)).trim();
       if (!text || /no match|not found|no entries found|no data found|no object found|is available|status:\s*(free|available)/i.test(text)) continue;

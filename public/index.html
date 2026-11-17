@@ -1,97 +1,106 @@
 <!doctype html>
-<html lang="ja">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>NetCheck — 接続・ブラウザ・DNS診断</title>
-<meta name="description" content="IPアドレス、ブラウザ情報、フィンガープリント、WebRTC漏れ、DNS伝播、IP・ドメインの登録情報をまとめて確認できるツール">
+<title>NetCheck — Connection, Browser &amp; DNS Checks</title>
+<meta name="description" content="Check your IP address, browser details, fingerprint, WebRTC leaks, DNS propagation, and IP / domain registration in one place.">
 <script>
-// 保存済みの隠しテーマがあれば、描画の前に反映する（標準テーマが一瞬見えるのを防ぐ）
+// 保存済みのテーマがあれば、描画の前に反映する（標準テーマが一瞬見えるのを防ぐ）
 try { document.documentElement.dataset.theme = localStorage.getItem('netcheck-theme') || 'mono'; } catch (e) { document.documentElement.dataset.theme = 'mono'; }
 </script>
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>
+<!-- 画面の文言は app.js の I18N から入る（data-i18n がキー）。ここに書いてある英語は読み込み前の初期表示。 -->
 <div class="page">
 <header class="top">
   <div class="marquee retro-only" aria-hidden="true"><span data-t="marquee"></span></div>
   <div class="title-row" id="title-row">
+    <div class="lang-pick" id="lang-pick">
+      <label>Lang
+        <select id="lang-select">
+          <option value="en">English</option>
+          <option value="ja">日本語</option>
+        </select>
+      </label>
+    </div>
     <a class="brand" href="#ip">NetCheck</a>
-    <div class="tagline" data-t="tagline">接続・ブラウザ・DNS診断</div>
+    <div class="tagline" data-t="tagline">Connection · Browser · DNS diagnostics</div>
     <div class="theme-pick" id="theme-pick" hidden>
-      <label>テーマ：
+      <label><span data-i18n="theme.label">Theme:</span>
         <select id="theme-select">
-          <option value="mono">白黒（標準）</option>
-          <option value="jp">🇯🇵 日本風</option>
-          <option value="us">🇺🇸 アメリカ風</option>
-          <option value="ru">🇷🇺 ロシア風</option>
-          <option value="cn">🇨🇳 中国風</option>
+          <option value="mono" data-i18n="theme.mono">White / Gray (default)</option>
+          <option value="jp" data-i18n="theme.jp">🇯🇵 Japan (2000s)</option>
+          <option value="us" data-i18n="theme.us">🇺🇸 USA (1990s)</option>
+          <option value="ru" data-i18n="theme.ru">🇷🇺 Russia (2000s)</option>
+          <option value="cn" data-i18n="theme.cn">🇨🇳 China (modern)</option>
         </select>
       </label>
     </div>
   </div>
   <p id="peek" class="peek retro-only" hidden><b class="blink" data-t="peekLabel"></b> <span id="peek-text"></span></p>
-    <nav class="tabs" role="tablist" aria-label="診断ツール">
-      <button role="tab" data-tab="ip">IP・接続</button>
-      <button role="tab" data-tab="browser">ブラウザ</button>
-      <button role="tab" data-tab="fp">フィンガープリント</button>
-      <button role="tab" data-tab="webrtc">WebRTC</button>
-      <button role="tab" data-tab="dns">DNS伝播</button>
-      <button role="tab" data-tab="lookup">IP・ドメイン検索</button>
-    </nav>
-    <select class="tab-select" aria-label="診断ツールを選ぶ">
-      <option value="ip">IP・接続</option>
-      <option value="browser">ブラウザ</option>
-      <option value="fp">フィンガープリント</option>
-      <option value="webrtc">WebRTC</option>
-      <option value="dns">DNS伝播</option>
-      <option value="lookup">IP・ドメイン検索</option>
-    </select>
+  <nav class="tabs" role="tablist" data-i18n-aria="tabs.aria" aria-label="Tools">
+    <button role="tab" data-tab="ip" data-i18n="tab.ip">IP &amp; Connection</button>
+    <button role="tab" data-tab="browser" data-i18n="tab.browser">Browser</button>
+    <button role="tab" data-tab="fp" data-i18n="tab.fp">Fingerprint</button>
+    <button role="tab" data-tab="webrtc" data-i18n="tab.webrtc">WebRTC</button>
+    <button role="tab" data-tab="dns" data-i18n="tab.dns">DNS Propagation</button>
+    <button role="tab" data-tab="lookup" data-i18n="tab.lookup">IP / Domain Lookup</button>
+  </nav>
+  <select class="tab-select" data-i18n-aria="tabs.aria" aria-label="Tools">
+    <option value="ip" data-i18n="tab.ip">IP &amp; Connection</option>
+    <option value="browser" data-i18n="tab.browser">Browser</option>
+    <option value="fp" data-i18n="tab.fp">Fingerprint</option>
+    <option value="webrtc" data-i18n="tab.webrtc">WebRTC</option>
+    <option value="dns" data-i18n="tab.dns">DNS Propagation</option>
+    <option value="lookup" data-i18n="tab.lookup">IP / Domain Lookup</option>
+  </select>
 </header>
 <div class="kouji" aria-hidden="true"></div>
 
 <main>
   <section data-panel="ip" hidden>
-    <h1>IP・接続情報</h1>
-    <p class="lead">このサイトのサーバーから見えている、あなたの接続の情報です。</p>
+    <h1 data-i18n="h.ip">IP &amp; Connection</h1>
+    <p class="lead" data-i18n="lead.ip"></p>
     <div id="ip-hero" class="hero"></div>
     <div id="ip-body"></div>
   </section>
 
   <section data-panel="browser" hidden>
-    <h1>ブラウザ情報</h1>
-    <p class="lead">JavaScriptからサイト側が読み取れる、ブラウザと端末の情報です。</p>
+    <h1 data-i18n="h.browser">Browser</h1>
+    <p class="lead" data-i18n="lead.browser"></p>
     <div id="browser-body"></div>
   </section>
 
   <section data-panel="fp" hidden>
-    <h1>フィンガープリント</h1>
-    <p class="lead">Cookieを使わずに端末を見分ける手がかりになる値です。計算はすべてブラウザ内で行い、どこにも送信しません。</p>
+    <h1 data-i18n="h.fp">Fingerprint</h1>
+    <p class="lead" data-i18n="lead.fp"></p>
     <div id="fp-hero" class="hero"></div>
     <div id="fp-body"></div>
   </section>
 
   <section data-panel="webrtc" hidden>
-    <h1>WebRTC漏れテスト</h1>
-    <p class="lead">WebRTC経由で見えるIPアドレスを調べます。VPN利用中に、ここへVPNではない本来のIPが出ていたら漏れています。</p>
-    <p><button id="webrtc-run" class="btn">もう一度テストする</button></p>
+    <h1 data-i18n="h.webrtc">WebRTC Leak Test</h1>
+    <p class="lead" data-i18n="lead.webrtc"></p>
+    <p><button id="webrtc-run" class="btn" data-i18n="webrtc.rerun">Run again</button></p>
     <div id="webrtc-body"></div>
   </section>
 
   <section data-panel="dns" hidden>
-    <h1>DNS伝播チェック</h1>
-    <p class="lead">複数の公開DNSと、地域ごとの問い合わせ結果を並べて、DNSの変更が行き渡ったかを確認します。</p>
+    <h1 data-i18n="h.dns">DNS Propagation Check</h1>
+    <p class="lead" data-i18n="lead.dns"></p>
     <form id="dns-form" class="dns-form">
-      <input id="dns-name" type="text" placeholder="example.com" autocomplete="off" autocapitalize="off" spellcheck="false" required aria-label="ドメイン名">
-      <select id="dns-type" aria-label="レコードタイプ">
+      <input id="dns-name" type="text" placeholder="example.com" autocomplete="off" autocapitalize="off" spellcheck="false" required data-i18n-aria="dns.nameAria" aria-label="Domain name">
+      <select id="dns-type" data-i18n-aria="dns.typeAria" aria-label="Record type">
         <option>A</option><option>AAAA</option><option>CNAME</option><option>MX</option>
         <option>NS</option><option>TXT</option><option>SOA</option><option>CAA</option>
         <option>SRV</option><option>PTR</option>
       </select>
-      <button class="btn primary" type="submit">調べる</button>
+      <button class="btn primary" type="submit" data-i18n="go">Check</button>
       <details class="dns-adv">
-        <summary>地域を追加で指定する</summary>
-        <label>クライアントのサブネット（IPv4）
+        <summary data-i18n="dns.adv">Add a region</summary>
+        <label><span data-i18n="dns.ecsLabel">Client subnet (IPv4)</span>
           <input id="dns-ecs" type="text" placeholder="203.0.113.0/24" autocomplete="off" inputmode="decimal">
         </label>
       </details>
@@ -100,11 +109,11 @@ try { document.documentElement.dataset.theme = localStorage.getItem('netcheck-th
   </section>
 
   <section data-panel="lookup" hidden>
-    <h1>IP・ドメイン検索</h1>
-    <p class="lead">IPアドレスかドメイン名を入力してください。どちらかを自動で判別して、登録情報を調べます。</p>
+    <h1 data-i18n="h.lookup">IP / Domain Lookup</h1>
+    <p class="lead" data-i18n="lead.lookup"></p>
     <form id="lookup-form" class="search-form">
-      <input id="lookup-q" type="text" placeholder="8.8.8.8 または example.com" autocomplete="off" autocapitalize="off" spellcheck="false" required aria-label="IPアドレスまたはドメイン名">
-      <button class="btn primary" type="submit">調べる</button>
+      <input id="lookup-q" type="text" data-i18n-ph="lookup.ph" placeholder="8.8.8.8 or example.com" autocomplete="off" autocapitalize="off" spellcheck="false" required data-i18n-aria="lookup.aria" aria-label="IP address or domain name">
+      <button class="btn primary" type="submit" data-i18n="go">Check</button>
     </form>
     <div id="lookup-hero" class="hero"></div>
     <div id="lookup-body"></div>
@@ -115,13 +124,25 @@ try { document.documentElement.dataset.theme = localStorage.getItem('netcheck-th
 <footer class="foot">
   <p class="retro-only"><span data-t="counterPre"></span> <span id="counter" class="counter"></span> <span data-t="counterPost"></span></p>
   <p id="kiriban" class="kiriban retro-only" hidden data-t="kiriban"></p>
-  <p class="retro-only"><span class="banner">NetCheck</span> <span data-t="linkFree"></span></p>
+  <p class="retro-only link-free"><span class="banner">NetCheck</span> <span data-t="linkFree"></span></p>
   <p class="retro-only" data-t="bestViewed"></p>
-  <p class="honest retro-only">※ 見た目は怪しいですが、表示した情報はどこにも保存していません。IP・接続情報と、DNS・IP・ドメインの検索だけがサーバーを経由します。訪問回数はこのブラウザの中だけで数えています。</p>
-  <p class="honest mono-only">表示した情報はどこにも保存していません。IP・接続情報と、DNS・IP・ドメインの検索だけがサーバーを経由します。</p>
+  <p class="honest retro-only" data-i18n="foot.honestRetro"></p>
+  <p class="honest mono-only" data-i18n="foot.honest"></p>
   <p data-t="copyright">© 2026 NetCheck</p>
 </footer>
 </div>
+
+<!-- 中国（現代）テーマ専用の飾り。どのボタンも押すと「冗談です」と出るだけで、何も起きない -->
+<div class="cn-float cn-only">
+  <button type="button" data-joke>客服</button>
+  <button type="button" data-joke>红包</button>
+  <button type="button" data-joke>APP</button>
+</div>
+<div class="cn-bar cn-only" id="cn-bar">
+  <span>🎁 恭喜！您已被选为今日幸运访客！（开玩笑的，什么奖品都没有）</span>
+  <button type="button" id="cn-bar-close" aria-label="Close">×</button>
+</div>
+<div class="toast" id="toast" role="status" hidden></div>
 
 <script src="/app.js" type="module"></script>
 </body>
