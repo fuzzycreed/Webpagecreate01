@@ -13,12 +13,16 @@ npm run deploy   # 初回は wrangler login が必要
 
 ## 構成
 
-- `public/` — 画面（HTML / CSS / JS）。タブは `#ip` `#browser` `#fp` `#webrtc` `#dns` `#lookup` で切り替わる
+- `public/` — 画面（HTML / CSS / JS）。タブは `#ip` `#browser` `#fp` `#webrtc` `#dns` `#lookup` `#ports` `#http` `#certs` で切り替わる
 - `src/index.js` — API
   - `GET /api/info` — 接続元IP、位置、ASN、TLSなど
   - `GET /api/dns?name=example.com&type=A[&ecs=203.0.113.0/24]` — 公開DoHリゾルバーと地域別（EDNS Client Subnet）の問い合わせ結果
   - `GET /api/ip?q=8.8.8.8` — 逆引き、AS番号（Team Cymru）、ネットワークの登録情報（RDAP）。所在地は返さない（下の「ブラウザから直接引く情報」を参照）
   - `GET /api/domain?q=example.com` — 登録情報（RDAP。未対応のTLDはWHOISで補う）と現在のDNSレコード
+  - `GET /api/ports?host=203.0.113.5&ports=22,80,443` — TCPポートが開いているか（1回12個まで。25番は不可）
+  - `GET /api/http?url=https://example.com` — 応答ヘッダーと転送の経路（本文は読まない）
+  - `GET /api/certs?q=example.com` — 証明書の発行履歴（crt.sh）
+  - `/api/info` と `/api/ip` は、Tor出口ノードかどうか（`tor`）も返す
 
 「IP・ドメイン検索」タブは入力欄が1つで、IPアドレスの形なら `/api/ip`、それ以外は `/api/domain` を呼ぶ。
 
@@ -58,5 +62,12 @@ Workers は他の利用者と出口のIPを共有しているため、無料の�
 
 - IPの所在地：ipwho.is、断られたら ipapi.co
 - 登録情報（RDAP）：まずサーバーが rdap.org に聞き、失敗したときだけブラウザが rdap.org に聞き直す
+- 証明書の発行履歴：まずサーバーが crt.sh に聞き、失敗したときだけブラウザが crt.sh に聞き直す
 
 RDAPの応答を整える処理は `public/rdap.js` にあり、サーバーとブラウザの両方が読み込む。
+
+## 外から調べる機能の制限
+
+ポートチェックとHTTPヘッダー確認は、踏み台にされにくいよう次の制限を入れている（`src/index.js` の `assertPublicHost` ほか）。
+プライベートアドレスやループバックなどは断る。ポートは1回12個まで、転送は8回まで。このサイト自身のアドレスは調べない。
+公開後に悪用が目立つようなら、Cloudflare の Turnstile や回数制限を足すこと。

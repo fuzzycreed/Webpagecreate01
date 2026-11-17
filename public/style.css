@@ -646,6 +646,9 @@ table.list thead th.num { text-align: right; }
 .dns-adv label { display: grid; gap: 4px; margin-top: 6px; max-width: 300px; }
 @media (max-width: 480px) { .dns-form { grid-template-columns: 1fr auto; } .dns-form .btn { grid-column: 1 / -1; } }
 .search-form { display: grid; grid-template-columns: 1fr auto; gap: 6px; margin-bottom: 12px; }
+.ports-form { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) auto auto; gap: 6px; margin-bottom: 12px; }
+@media (max-width: 720px) { .ports-form { grid-template-columns: 1fr 1fr; } .ports-form input { grid-column: 1 / -1; } }
+.url { overflow-wrap: anywhere; font-family: var(--mono); font-size: 13px; }
 
 pre.raw { margin: 0; padding: 8px 10px; font: 13px/1.5 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; background: #ffffff; }
 .canvas-preview { max-width: 100%; height: auto; border: 1px solid var(--line); display: block; background: #ffffff; }

@@ -49,6 +49,9 @@ try { document.documentElement.dataset.theme = localStorage.getItem('netcheck-th
     <option value="webrtc" data-i18n="tab.webrtc">WebRTC</option>
     <option value="dns" data-i18n="tab.dns">DNS Propagation</option>
     <option value="lookup" data-i18n="tab.lookup">IP / Domain Lookup</option>
+    <option value="ports" data-i18n="tab.ports">Port Check</option>
+    <option value="http" data-i18n="tab.http">HTTP Headers</option>
+    <option value="certs" data-i18n="tab.certs">Certificates</option>
   </select>
 </header>
 <div class="kouji" aria-hidden="true"></div>
@@ -61,6 +64,9 @@ try { document.documentElement.dataset.theme = localStorage.getItem('netcheck-th
     <button role="tab" data-tab="webrtc" data-i18n="tab.webrtc">WebRTC</button>
     <button role="tab" data-tab="dns" data-i18n="tab.dns">DNS Propagation</button>
     <button role="tab" data-tab="lookup" data-i18n="tab.lookup">IP / Domain Lookup</button>
+    <button role="tab" data-tab="ports" data-i18n="tab.ports">Port Check</button>
+    <button role="tab" data-tab="http" data-i18n="tab.http">HTTP Headers</button>
+    <button role="tab" data-tab="certs" data-i18n="tab.certs">Certificates</button>
   </nav>
 <main>
   <section data-panel="ip" hidden>
@@ -120,6 +126,40 @@ try { document.documentElement.dataset.theme = localStorage.getItem('netcheck-th
     </form>
     <div id="lookup-hero" class="hero"></div>
     <div id="lookup-body"></div>
+  </section>
+
+  <section data-panel="ports" hidden>
+    <h1 data-i18n="h.ports">Open Port Check</h1>
+    <p class="lead" data-i18n="lead.ports"></p>
+    <form id="ports-form" class="ports-form">
+      <input id="ports-host" type="text" data-i18n-ph="ports.hostPh" placeholder="IP address or hostname" autocomplete="off" autocapitalize="off" spellcheck="false" required data-i18n-aria="ports.hostAria" aria-label="Host">
+      <input id="ports-list" type="text" value="21, 22, 23, 53, 80, 443, 3306, 3389, 8080, 8443" autocomplete="off" inputmode="numeric" required data-i18n-aria="ports.portsAria" aria-label="Ports, separated by commas">
+      <button class="btn primary" type="submit" data-i18n="go">Check</button>
+      <button class="btn" type="button" id="ports-mine" data-i18n="ports.useMine">Use my IP</button>
+    </form>
+    <div id="ports-body"></div>
+  </section>
+
+  <section data-panel="http" hidden>
+    <h1 data-i18n="h.http">HTTP Header Check</h1>
+    <p class="lead" data-i18n="lead.http"></p>
+    <form id="http-form" class="search-form">
+      <input id="http-q" type="text" placeholder="https://example.com" autocomplete="off" autocapitalize="off" spellcheck="false" required data-i18n-aria="http.aria" aria-label="URL">
+      <button class="btn primary" type="submit" data-i18n="go">Check</button>
+    </form>
+    <div id="http-hero" class="hero"></div>
+    <div id="http-body"></div>
+  </section>
+
+  <section data-panel="certs" hidden>
+    <h1 data-i18n="h.certs">Certificate History</h1>
+    <p class="lead" data-i18n="lead.certs"></p>
+    <form id="certs-form" class="search-form">
+      <input id="certs-q" type="text" placeholder="example.com" autocomplete="off" autocapitalize="off" spellcheck="false" required data-i18n-aria="certs.aria" aria-label="Domain name">
+      <button class="btn primary" type="submit" data-i18n="go">Check</button>
+    </form>
+    <div id="certs-hero" class="hero"></div>
+    <div id="certs-body"></div>
   </section>
 </main>
 </div>

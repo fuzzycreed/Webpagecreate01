@@ -3,9 +3,10 @@
 
 import { I18N } from './i18n.js';
 import { parseIpRdap, parseDomainRdap } from './rdap.js';
+import { normalizeCerts, certsUrl } from './certs.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
-const TABS = ['ip', 'browser', 'fp', 'webrtc', 'dns', 'lookup'];
+const TABS = ['ip', 'browser', 'fp', 'webrtc', 'dns', 'lookup', 'ports', 'http', 'certs'];
 
 const store = {
   get(key) {
@@ -80,6 +81,8 @@ const section = (title, ...body) => [el('section', { class: 'sec' }, el('h2', {}
 // PC幅では横に2列、スマホ幅では縦に並ぶ入れ物。各引数が1列になる
 const cols = (...columns) => el('div', { class: 'cols' }, columns.map((c) => el('div', {}, c)));
 const stat = (k, v, s, mono) => el('div', { class: 'stat' }, el('div', { class: 'k' }, k), el('div', { class: `v${mono ? ' mono' : ''}` }, show(v)), s ? el('div', { class: 's' }, s) : null);
+// Tor出口ノードかどうかの表示。分からないとき（null）は空欄にする
+const torCell = (tor) => (tor === true ? badge('warn', t('yes')) : tor === false ? t('no') : null);
 const note = (kind, text) => el('p', { class: `note ${kind}` }, text);
 const badge = (kind, text) => el('span', { class: `badge ${kind}` }, text);
 // replaceChildren は null を文字列として描画してしまうので、空の要素を除いてから入れる
@@ -241,6 +244,7 @@ async function initIp() {
             [t('ip.asn'), network.asn ? `AS${network.asn}` : null],
             [t('ip.operator'), network.asOrganization],
             [t('ip.colo'), network.colo],
+            [t('ip.tor'), torCell(info.tor)],
           ]),
         ),
       ],
@@ -252,8 +256,6 @@ async function initIp() {
             [t('ip.http'), connection.httpProtocol],
             [t('ip.tls'), connection.tlsVersion],
             [t('ip.cipher'), connection.tlsCipher],
-    // Cloudflareが測った往復時間。HTTP/3（QUIC）の接続にはTCPが無いので、QUIC側の値を使う
-            [t('ip.rtt'), connection.clientTcpRtt ? `${connection.clientTcpRtt} ms (TCP)` : connection.clientQuicRtt ? `${connection.clientQuicRtt} ms (QUIC)` : null],
             [t('ip.latency'), `${info.measuredMs} ms`],
             [t('ip.encodings'), connection.clientAcceptEncoding],
           ]),
@@ -903,6 +905,7 @@ function ipSections(d, { brief = false } = {}) {
         [t('lk.org'), geo?.org || rdap?.name],
         [t('lk.network'), asn ? `AS${asn.asn} ${asn.name || ''}` : null],
         [t('lk.prefix'), asn?.prefix],
+        d.tor !== null && d.tor !== undefined && [t('ip.tor'), torCell(d.tor)],
         geo?.timezone && [t('ip.timezone'), geo.timezone],
         geo?.timezone && [t('lk.localTime'), localTime(geo.timezone)],
         geo?.lat !== null && geo?.lat !== undefined && [t('ip.coords'), `${geo.lat}, ${geo.lon}`],
@@ -1019,6 +1022,164 @@ function renderDomain(d, hero, body) {
       ),
     ),
   );
+}
+
+// ---------- ポート開放チェック ----------
+
+const PORT_NAMES = {
+  21: 'FTP', 22: 'SSH', 23: 'Telnet', 25: 'SMTP', 53: 'DNS', 80: 'HTTP', 110: 'POP3', 143: 'IMAP', 443: 'HTTPS', 465: 'SMTPS',
+  587: 'SMTP (submission)', 993: 'IMAPS', 995: 'POP3S', 1433: 'MSSQL', 3306: 'MySQL', 3389: 'RDP', 5432: 'PostgreSQL',
+  5900: 'VNC', 6379: 'Redis', 8080: 'HTTP (alt)', 8443: 'HTTPS (alt)', 27017: 'MongoDB',
+};
+const PORT_BADGE = { open: 'ok', closed: 'info', filtered: 'warn', unsupported: 'bad' };
+
+function initPorts() {
+  $('#ports-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const host = $('#ports-host').value.trim();
+    if (host) go('ports', new URLSearchParams({ host, ports: $('#ports-list').value.replace(/[^0-9,]+/g, ',').replace(/,{2,}/g, ',').replace(/^,|,$/g, '') }));
+  });
+  $('#ports-mine').addEventListener('click', async () => {
+    const info = await getInfo().catch(() => null);
+    if (info?.ip) $('#ports-host').value = info.ip;
+  });
+}
+
+async function queryPorts(qs) {
+  const host = (qs.get('host') || '').trim();
+  if (!host) return;
+  const body = $('#ports-body');
+  const btn = $('#ports-form button[type="submit"]');
+  $('#ports-host').value = host;
+  if (qs.get('ports')) $('#ports-list').value = qs.get('ports').split(',').join(', ');
+  btn.disabled = true;
+  body.replaceChildren(loading(t('querying')));
+  try {
+    const data = await apiJson('/api/ports', { host, ports: qs.get('ports') || '' });
+    const open = data.results.filter((r) => r.state === 'open').length;
+    const rows = data.results.map((r) =>
+      el('tr', {}, el('td', { class: 'mono' }, r.port), el('td', {}, PORT_NAMES[r.port] || '—'), el('td', {}, badge(PORT_BADGE[r.state] || 'info', t(`ports.${r.state}`))), el('td', { class: 'num' }, r.ms === undefined ? '—' : `${r.ms} ms`)),
+    );
+    fill(
+      body,
+      note(open ? 'ok' : 'info', t('ports.summary', data.host, open, data.results.length)),
+      ...section(data.host, listTable([t('ports.thPort'), t('ports.thService'), t('dns.thState'), [t('dns.thTime')]], rows), el('p', { class: 'sub', style: 'margin:6px 2px 0' }, t('ports.note'))),
+    );
+  } catch (e) {
+    body.replaceChildren(note('bad', errText(e.message)));
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ---------- HTTPヘッダー確認 ----------
+
+const SECURITY_HEADERS = ['strict-transport-security', 'content-security-policy', 'x-frame-options', 'x-content-type-options', 'referrer-policy', 'permissions-policy'];
+
+function renderHttp(d, hero, body) {
+  const last = d.hops[d.hops.length - 1];
+  const header = (hop, name) => hop.headers?.find((h) => h.name.toLowerCase() === name)?.value || null;
+  const statusBadge = (hop) => (hop.error ? badge('bad', errText(hop.error)) : badge(hop.status >= 400 ? 'bad' : hop.status >= 300 ? 'warn' : 'ok', `${hop.status} ${hop.statusText || ''}`.trim()));
+  hero.replaceChildren(
+    stat(t('http.status'), statusBadge(last)),
+    stat(t('http.redirects'), String(d.hops.filter((h) => h.status >= 300 && h.status < 400 && h.location).length)),
+    stat(t('http.total'), `${d.hops.reduce((sum, h) => sum + (h.ms || 0), 0)} ms`),
+    stat(t('http.server'), last.headers ? header(last, 'server') : null),
+  );
+  fill(
+    body,
+    last.error ? note('bad', t('http.failed', errText(last.error))) : null,
+    d.tooMany ? note('warn', t('http.tooMany')) : null,
+    ...section(
+      t('http.secChain'),
+      listTable(
+        [t('http.thStep'), t('http.thStatus'), 'URL', [t('dns.thTime')]],
+        d.hops.map((h, i) => el('tr', {}, el('td', {}, i + 1), el('td', {}, statusBadge(h)), el('td', { class: 'url' }, h.url), el('td', { class: 'num' }, `${h.ms} ms`))),
+      ),
+      el('p', { class: 'sub', style: 'margin:6px 2px 0' }, t('http.note')),
+    ),
+    last.headers
+      ? cols(
+          section(
+            t('http.secSecurity'),
+            listTable(
+              [t('http.thHeader'), t('dns.thState')],
+              SECURITY_HEADERS.map((name) => el('tr', {}, el('td', { class: 'mono' }, name), el('td', {}, header(last, name) ? badge('ok', t('http.present')) : badge('warn', t('http.missing'))))),
+            ),
+          ),
+          section(t('http.secHeaders', d.hops.length, last.url), kvTable(last.headers.map((h) => [h.name, h.value]))),
+        )
+      : null,
+    // 途中の転送の応答ヘッダーも、最終応答に近い順に並べる
+    ...d.hops
+      .slice(0, -1)
+      .map((h, i) => (h.headers ? section(t('http.secHeaders', i + 1, h.url), kvTable(h.headers.map((x) => [x.name, x.value]))) : []))
+      .reverse()
+      .flat(),
+  );
+}
+
+// ---------- 証明書の発行履歴 ----------
+
+// サーバー経由で取れなかったときは、ブラウザから crt.sh に直接聞き直す
+async function loadCerts(q) {
+  const res = await fetch(`/api/certs?${new URLSearchParams({ q })}`);
+  const data = await res.json();
+  if (res.ok) return data;
+  if (I18N.en[`err.${data.error}`]) throw new Error(data.error); // 入力の誤りは聞き直しても同じ
+  try {
+    const raw = await fetch(certsUrl(q), { signal: AbortSignal.timeout(20000), referrerPolicy: 'no-referrer' }).then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))));
+    return { query: q, ...normalizeCerts(raw) };
+  } catch {
+    throw new Error(t('certs.failed'));
+  }
+}
+
+function renderCerts(d, hero, body) {
+  if (!d.certs.length) {
+    body.replaceChildren(note('info', t('certs.none')));
+    return;
+  }
+  const now = Date.now();
+  // crt.sh の日時はUTCだがタイムゾーンの印が無いので、Z を補って読む
+  const utc = (v) => (v && !/[zZ]$|[+-]\d\d:?\d\d$/.test(v) ? `${v}Z` : v);
+  const rows = d.certs.map((c) => {
+    const expired = c.notAfter && new Date(utc(c.notAfter)).getTime() < now;
+    return el(
+      'tr',
+      {},
+      el('td', {}, el('a', { href: `https://crt.sh/?id=${encodeURIComponent(c.id)}`, target: '_blank', rel: 'noopener' }, fmtDate(utc(c.notBefore)) || '—')),
+      el('td', {}, fmtDate(utc(c.notAfter)), ' ', expired ? badge('info', t('dm.expired')) : badge('ok', t('certs.valid'))),
+      el('td', {}, c.issuer),
+      el('td', { class: 'ans' }, c.names.slice(0, 4).map((n) => el('div', {}, n)), c.names.length > 4 ? el('div', { class: 'sub' }, t('lk.more', c.names.length - 4)) : null),
+    );
+  });
+  fill(body, el('p', { class: 'sub', style: 'margin:0 0 6px' }, t('certs.count', d.total, d.certs.length)), listTable([t('certs.thIssued'), t('dm.expires'), t('certs.thIssuer'), t('certs.thNames')], rows));
+}
+
+// 入力欄1つ・結果1つの検索タブ（HTTP・証明書）に共通の実行部分
+async function runSimple(tab, q, load, render) {
+  const body = $(`#${tab}-body`);
+  const hero = $(`#${tab}-hero`);
+  const btn = $(`#${tab}-form button`);
+  $(`#${tab}-q`).value = q;
+  btn.disabled = true;
+  hero.replaceChildren();
+  body.replaceChildren(loading(t('searching')));
+  try {
+    render(await load(q), hero, body);
+  } catch (e) {
+    body.replaceChildren(note('bad', errText(e.message)));
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function apiJson(path, params) {
+  const res = await fetch(`${path}?${new URLSearchParams(params)}`);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  return data;
 }
 
 // ---------- テーマ ----------
@@ -1154,6 +1315,9 @@ const INIT = {
   },
   dns: initDns,
   lookup: () => initSearch('lookup'),
+  ports: initPorts,
+  http: () => initSearch('http'),
+  certs: () => initSearch('certs'),
 };
 // ハッシュの「?」以降（検索条件）を受け取って実行するタブ
 const QUERY = {
@@ -1165,6 +1329,9 @@ const QUERY = {
     if (looksLikeIp(q)) runSearch('lookup', '/api/ip', q, renderIp, enrichIp);
     else runSearch('lookup', '/api/domain', q, renderDomain, enrichDomain);
   },
+  ports: queryPorts,
+  http: (qs) => qs.get('q') && runSimple('http', qs.get('q').trim(), (url) => apiJson('/api/http', { url }), renderHttp),
+  certs: (qs) => qs.get('q') && runSimple('certs', qs.get('q').trim(), loadCerts, renderCerts),
 };
 const started = new Set();
 const lastQuery = {};

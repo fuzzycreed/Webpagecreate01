@@ -2,6 +2,7 @@
 // 静的ファイルは wrangler.jsonc の assets 設定で public/ から配信される。
 
 import { parseIpRdap, parseDomainRdap } from '../public/rdap.js';
+import { normalizeCerts, certsUrl } from '../public/certs.js';
 
 const TYPES = { A: 1, NS: 2, CNAME: 5, SOA: 6, PTR: 12, MX: 15, TXT: 16, AAAA: 28, SRV: 33, CAA: 257 };
 const TYPE_NAMES = Object.fromEntries(Object.entries(TYPES).map(([k, v]) => [v, k]));
@@ -70,10 +71,13 @@ export default {
     const url = new URL(request.url);
     // エラーは短いコード（bad_name など）で返し、画面側が表示言語に合わせて文言にする
     try {
-      if (url.pathname === '/api/info') return json(info(request));
+      if (url.pathname === '/api/info') return json(await info(request));
       if (url.pathname === '/api/dns') return json(await dns(url.searchParams));
       if (url.pathname === '/api/ip') return json(await ipLookup(url.searchParams));
       if (url.pathname === '/api/domain') return json(await domainLookup(url.searchParams));
+      if (url.pathname === '/api/ports') return json(await portsCheck(url.searchParams));
+      if (url.pathname === '/api/http') return json(await httpCheck(url.searchParams, url.hostname));
+      if (url.pathname === '/api/certs') return json(await certsLookup(url.searchParams));
     } catch (e) {
       return json({ error: e.message || String(e) }, 400);
     }
@@ -90,7 +94,7 @@ function json(data, status = 200) {
 
 // ---------- /api/info ----------
 
-function info(request) {
+async function info(request) {
   const cf = request.cf || {};
   const h = request.headers;
   const ip = h.get('cf-connecting-ip') || h.get('x-real-ip') || '';
@@ -100,7 +104,8 @@ function info(request) {
     ipVersion: ip.includes(':') ? 6 : ip ? 4 : null,
     geo: pick('country', 'isEUCountry', 'continent', 'region', 'regionCode', 'city', 'postalCode', 'latitude', 'longitude', 'timezone'),
     network: pick('asn', 'asOrganization', 'colo'),
-    connection: pick('httpProtocol', 'tlsVersion', 'tlsCipher', 'clientTcpRtt', 'clientQuicRtt', 'clientAcceptEncoding'),
+    connection: pick('httpProtocol', 'tlsVersion', 'tlsCipher', 'clientAcceptEncoding'),
+    tor: ip ? await isTorExit(ip, cf.country) : null,
     headers: [...h.entries()].map(([name, value]) => ({ name, value })),
   };
 }
@@ -374,16 +379,18 @@ async function lookupIp(ip) {
   const special = specialRange(ip);
   // geo（所在地）はここでは埋めない。Workers は他の利用者と出口のIPを共有していて、無料の所在地サービスに
   // 回数制限で断られるため、訪問者のブラウザから直接問い合わせる（public/app.js の geoLookup）
-  const out = { ip: ip.text, version: ip.version, special, ptr: [], asn: null, geo: null, rdap: null, errors: {} };
+  const out = { ip: ip.text, version: ip.version, special, ptr: [], asn: null, geo: null, rdap: null, tor: null, errors: {} };
   if (special) return out;
 
   const rev = reversedLabels(ip);
-  const [ptr, origin, rdap] = await Promise.allSettled([
+  const [ptr, origin, rdap, tor] = await Promise.allSettled([
     resolve(`${rev}.${ip.version === 4 ? 'in-addr' : 'ip6'}.arpa`, 'PTR'),
     // Team Cymru のIP→AS番号対応表（DNSで引ける公開サービス）
     resolve(`${rev}.${ip.version === 4 ? 'origin' : 'origin6'}.asn.cymru.com`, 'TXT'),
     rdapFetch(`ip/${ip.text}`),
+    isTorExit(ip.text),
   ]);
+  out.tor = tor.status === 'fulfilled' ? tor.value : null;
 
   if (ptr.status === 'fulfilled') out.ptr = ptr.value.answers.filter((a) => a.type === 'PTR').map((a) => a.data);
   else out.errors.ptr = ptr.reason.message;
@@ -522,4 +529,175 @@ async function whoisQuery(hostname, query) {
     clearTimeout(timer);
     socket.close().catch(() => {});
   }
+}
+
+// ---------- Tor出口ノードの判定 ----------
+
+// Tor Project が公開している出口ノードのIPv4一覧。同じ実行環境の中では30分使い回す
+let torCache = { at: 0, set: null };
+async function torExitSet() {
+  if (torCache.set && Date.now() - torCache.at < 30 * 60 * 1000) return torCache.set;
+  const res = await fetch('https://check.torproject.org/torbulkexitlist', {
+    cf: { cacheTtl: 3600, cacheEverything: true },
+    signal: AbortSignal.timeout(4000),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const set = new Set((await res.text()).split('\n').map((line) => line.trim()).filter(Boolean));
+  torCache = { at: Date.now(), set };
+  return set;
+}
+
+// true / false を返す。分からないとき（IPv6や一覧の取得失敗）は null
+async function isTorExit(ipText, country) {
+  if (country === 'T1') return true; // Cloudflare は Tor 経由の接続に国コード T1 を付ける
+  if (ipText.includes(':')) return null;
+  try {
+    return (await torExitSet()).has(ipText);
+  } catch {
+    return null;
+  }
+}
+
+// ---------- 調べる先の検証（ポート・HTTP共通） ----------
+
+// 外から調べる意味のない宛先（LAN内、ループバックなど）は断る
+function assertPublicHost(hostname) {
+  const host = hostname.replace(/^\[|\]$/g, '').toLowerCase();
+  const ip = parseIp(host);
+  if (ip) {
+    if (specialRange(ip)) throw new Error('private_host');
+    return ip.text;
+  }
+  if (host === 'localhost' || /\.(local|localhost|internal|lan|home\.arpa)$/.test(host)) throw new Error('private_host');
+  let name;
+  try {
+    name = normalizeName(host);
+  } catch {
+    throw new Error('bad_host');
+  }
+  if (!name.includes('.')) throw new Error('bad_host');
+  return name;
+}
+
+// ---------- /api/ports ----------
+
+const MAX_PORTS = 12;
+const PORT_BATCH = 4; // 同時に開けるTCP接続の数を抑える
+
+async function portsCheck(params) {
+  const raw = (params.get('host') || '').trim().replace(/^[a-z]+:\/\//i, '').replace(/[/?#].*$/, '');
+  if (!raw) throw new Error('bad_host');
+  const host = assertPublicHost(raw);
+
+  const ports = [...new Set((params.get('ports') || '').split(/[\s,]+/).filter(Boolean).map(Number))];
+  if (!ports.length || ports.length > MAX_PORTS || ports.some((p) => !Number.isInteger(p) || p < 1 || p > 65535)) throw new Error('bad_ports');
+
+  // 名前で指定されたときは、存在するか・LAN内のアドレスを指していないかを先に確かめる
+  if (!parseIp(host)) {
+    const a = await resolve(host, 'A').catch(() => null);
+    const aaaa = a && !a.answers.some((x) => x.type === 'A') ? await resolve(host, 'AAAA').catch(() => null) : null;
+    const addrs = [...(a?.answers || []), ...(aaaa?.answers || [])].filter((x) => x.type === 'A' || x.type === 'AAAA');
+    if (a && aaaa && !addrs.length) throw new Error('host_not_found');
+    if (addrs.some((x) => specialRange(parseIp(x.data)))) throw new Error('private_host');
+  }
+
+  const results = [];
+  for (let i = 0; i < ports.length; i += PORT_BATCH) {
+    results.push(...(await Promise.all(ports.slice(i, i + PORT_BATCH).map((port) => probePort(host, port)))));
+  }
+  return { host, results };
+}
+
+// open = 接続できた、closed = 断られた、filtered = 3秒待っても応答なし、unsupported = Workers からは試せない
+async function probePort(hostname, port) {
+  if (port === 25) return { port, state: 'unsupported' }; // Workers は25番（メール送信）に接続できない
+  const started = Date.now();
+  let socket;
+  let timer;
+  try {
+    const { connect } = await import('cloudflare:sockets');
+    socket = connect({ hostname, port });
+    const outcome = await Promise.race([socket.opened.then(() => 'open'), new Promise((done) => (timer = setTimeout(() => done('filtered'), 3000)))]);
+    return { port, state: outcome, ms: Date.now() - started };
+  } catch {
+    return { port, state: 'closed', ms: Date.now() - started };
+  } finally {
+    clearTimeout(timer);
+    socket?.close().catch(() => {});
+  }
+}
+
+// ---------- /api/http ----------
+
+const MAX_REDIRECTS = 8;
+
+async function httpCheck(params, selfHost) {
+  let raw = (params.get('url') || '').trim();
+  if (!raw) throw new Error('bad_url');
+  if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(raw)) raw = `https://${raw}`;
+  let url;
+  try {
+    url = new URL(raw);
+  } catch {
+    throw new Error('bad_url');
+  }
+
+  const hops = [];
+  let tooMany = false;
+  for (let i = 0; ; i++) {
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') throw new Error('bad_url');
+    if (url.hostname === selfHost) throw new Error('self');
+    assertPublicHost(url.hostname);
+
+    const started = Date.now();
+    let res;
+    try {
+      // 転送は自動で追わず、1段ずつ記録する。本文は読まない
+      res = await fetch(url, {
+        redirect: 'manual',
+        headers: { 'user-agent': 'Mozilla/5.0 (compatible; NetCheck/1.0; HTTP header check)', accept: '*/*' },
+        signal: AbortSignal.timeout(8000),
+      });
+    } catch (e) {
+      const timeout = e.name === 'TimeoutError' || e.name === 'AbortError';
+      hops.push({ url: url.href, error: timeout ? 'timeout' : e.message || String(e), ms: Date.now() - started });
+      break;
+    }
+    res.body?.cancel().catch(() => {});
+    const location = res.headers.get('location');
+    hops.push({
+      url: url.href,
+      status: res.status,
+      statusText: res.statusText,
+      ms: Date.now() - started,
+      location,
+      headers: [...res.headers.entries()].map(([name, value]) => ({ name, value })),
+    });
+    if (!(res.status >= 300 && res.status < 400 && location)) break;
+    if (i + 1 >= MAX_REDIRECTS) {
+      tooMany = true;
+      break;
+    }
+    try {
+      url = new URL(location, url);
+    } catch {
+      break;
+    }
+  }
+  return { hops, tooMany };
+}
+
+// ---------- /api/certs ----------
+
+// 証明書の発行記録（Certificate Transparency）を crt.sh から引く。
+// crt.sh は混んでいて失敗しやすいので、失敗時は画面側がブラウザから直接聞き直す
+async function certsLookup(params) {
+  const name = normalizeName(params.get('q') || '');
+  if (!name.includes('.')) throw new Error('need_dot');
+  const res = await fetch(certsUrl(name), {
+    headers: { accept: 'application/json', 'user-agent': 'NetCheck/1.0 (certificate history lookup)' },
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return { query: name, ...normalizeCerts(await res.json()) };
 }
