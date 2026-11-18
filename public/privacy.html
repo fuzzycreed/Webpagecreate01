@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy &amp; data — NetCheck</title>
+<meta name="robots" content="index,follow">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<script src="/boot.js"></script>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="page">
+<header class="top">
+  <div class="title-row">
+    <a class="brand" href="/">NetCheck</a>
+    <div class="tagline">Privacy &amp; data ／ プライバシーとデータの扱い</div>
+  </div>
+</header>
+<div class="kouji" aria-hidden="true"></div>
+<main class="doc">
+  <p><a href="#ja">日本語はこちら ↓</a></p>
+
+  <h1>Privacy &amp; data</h1>
+  <p>NetCheck shows you what a website can see about your connection and browser, and runs network lookups you ask for. This page says exactly what happens to that information.</p>
+
+  <h2>What the site stores</h2>
+  <ul>
+    <li><b>Nothing about your results.</b> Your IP address, location, fingerprint values and lookup results are shown to you and then discarded. They are not saved or logged by this site.</li>
+    <li><b>A total visit count.</b> One number for the whole site, plus the count for today and yesterday. No IP address or identifier is stored with it.</li>
+    <li><b>Guestbook posts</b> (Japan theme only): the name you type, the message and the time. Posts are public. Your IP address is not stored with them.</li>
+  </ul>
+  <p>The site sets no cookies and uses no analytics or advertising.</p>
+
+  <h2>What stays in your browser</h2>
+  <p>These are kept in your browser’s local storage and never sent anywhere: the language and theme you chose, whether the theme picker is shown, how many times this browser has opened the site, and your recent searches. Clearing the site’s data in your browser removes them.</p>
+
+  <h2>What passes through the server</h2>
+  <p>The site runs on Cloudflare. Like any website, it receives your IP address and request headers in order to answer you; the “IP &amp; Connection” page simply shows them back. Cloudflare may keep its own operational logs under its privacy policy.</p>
+  <p>Lookups you start (DNS, IP, domain, mail, AS number, ports, HTTP headers, response time, certificates) are sent to the server, which asks public services on your behalf: public DNS resolvers (Google, Cloudflare, Quad9 and others), Team Cymru, rdap.org and the regional internet registries, WHOIS servers, crt.sh and the Tor Project’s exit list. Those services see the name or address you looked up, coming from Cloudflare, not from you.</p>
+  <p>To limit abuse, requests are rate-limited per IP address. The limiter counts requests for about a minute and keeps no history.</p>
+
+  <h2>What your browser asks other services directly</h2>
+  <p>Some information cannot be fetched reliably through the server, so your browser asks for it directly. Those services see your IP address and the thing you looked up:</p>
+  <ul>
+    <li><b>ipwho.is</b>, or <b>ipapi.co</b> if that fails — the approximate location of an IP you look up.</li>
+    <li><b>stat.ripe.net</b> — the prefixes announced by an AS number.</li>
+    <li><b>rdap.org</b> and the regional registries, <b>crt.sh</b> — only when the server could not get registration or certificate data.</li>
+    <li><b>tile.openstreetmap.org</b> — map images, when a map is shown.</li>
+    <li><b>STUN servers</b> (Cloudflare, Google) — for the WebRTC leak test, which works by asking them which address they see.</li>
+  </ul>
+  <p>The fingerprint, the ad-blocker check, the tools on the Tools page (other than the response-time test) and the random string generator run entirely in your browser.</p>
+
+  <h2>Using the lookup tools</h2>
+  <p>The port check, HTTP header check and response-time test make requests to the host you enter. Use them on systems you own or are allowed to test.</p>
+
+  <h1 id="ja">プライバシーとデータの扱い</h1>
+  <p>NetCheck は、ウェブサイトからあなたの接続やブラウザについて何が見えるかを表示し、指定されたネットワークの調査を実行するサイトです。このページでは、その情報がどう扱われるかを説明します。</p>
+
+  <h2>サイトが保存するもの</h2>
+  <ul>
+    <li><b>診断結果は保存しません。</b> IPアドレス、所在地、フィンガープリントの値、検索結果は、あなたの画面に表示したあと破棄します。このサイトが保存・記録することはありません。</li>
+    <li><b>訪問数の合計。</b> サイト全体で1つの数字と、今日・昨日の数だけです。IPアドレスや識別子は一緒に保存しません。</li>
+    <li><b>掲示板の書き込み</b>（日本風テーマのみ）：入力した名前、本文、日時です。書き込みは誰でも読めます。IPアドレスは一緒に保存しません。</li>
+  </ul>
+  <p>このサイトはCookieを設定せず、アクセス解析や広告も使っていません。</p>
+
+  <h2>ブラウザの中だけに残るもの</h2>
+  <p>次の情報はブラウザのローカルストレージに保存され、どこにも送信されません。選んだ言語とテーマ、テーマ選択を表示しているかどうか、このブラウザでサイトを開いた回数、最近の検索です。ブラウザでこのサイトのデータを消去すれば、すべて消えます。</p>
+
+  <h2>サーバーを経由するもの</h2>
+  <p>このサイトはCloudflare上で動いています。どのウェブサイトとも同じく、応答を返すためにあなたのIPアドレスとリクエストヘッダーを受け取ります。「IP・接続」ページは、それをそのまま表示しているだけです。Cloudflareは、同社のプライバシーポリシーに基づいて運用上のログを保持することがあります。</p>
+  <p>あなたが実行した検索（DNS、IP、ドメイン、メール設定、AS番号、ポート、HTTPヘッダー、応答時間、証明書）はサーバーに送られ、サーバーがあなたの代わりに公開サービスへ問い合わせます。問い合わせ先は、公開DNS（Google、Cloudflare、Quad9 など）、Team Cymru、rdap.org と各地域の登録機関、WHOISサーバー、crt.sh、Tor Project の出口ノード一覧です。これらのサービスから見えるのは、調べた名前やアドレスと、Cloudflareからのアクセスであることだけです。</p>
+  <p>悪用を防ぐため、IPアドレスごとにリクエストの回数を制限しています。数えるのは1分程度の間だけで、履歴は残しません。</p>
+
+  <h2>ブラウザが他のサービスへ直接問い合わせるもの</h2>
+  <p>サーバー経由では安定して取得できない情報は、あなたのブラウザから直接問い合わせます。これらのサービスには、あなたのIPアドレスと、調べた対象が伝わります。</p>
+  <ul>
+    <li><b>ipwho.is</b>（失敗したときは <b>ipapi.co</b>）：検索したIPのおおよその所在地</li>
+    <li><b>stat.ripe.net</b>：AS番号が広報しているIP帯</li>
+    <li><b>rdap.org</b> と各地域の登録機関、<b>crt.sh</b>：サーバーが登録情報や証明書の記録を取得できなかったときだけ</li>
+    <li><b>tile.openstreetmap.org</b>：地図を表示するときの地図画像</li>
+    <li><b>STUNサーバー</b>（Cloudflare、Google）：WebRTC漏れテストのため。相手から見えるアドレスを尋ねる仕組みです</li>
+  </ul>
+  <p>フィンガープリント、広告ブロッカーの検出、ツールページの各機能（応答時間の測定を除く）、ランダム文字列の生成は、すべてブラウザの中だけで動きます。</p>
+
+  <h2>調査ツールの利用について</h2>
+  <p>ポートチェック、HTTPヘッダー確認、応答時間の測定は、入力されたホストへ実際にアクセスします。自分が管理しているか、調査を許可されているシステムに対して使ってください。</p>
+</main>
+<div class="kouji" aria-hidden="true"></div>
+<footer class="foot"><p><a href="/">← NetCheck</a></p><p>© 2026 NetCheck</p></footer>
+</div>
+</body>
+</html>

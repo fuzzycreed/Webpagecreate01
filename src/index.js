@@ -69,6 +69,7 @@ const LOCATIONS = [
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if (url.pathname === '/') return page(request, env, url);
     const limited = await rateLimit(request, env, url.pathname);
     if (limited) return limited;
     // エラーは短いコード（bad_name など）で返し、画面側が表示言語に合わせて文言にする
@@ -88,9 +89,38 @@ export default {
     } catch (e) {
       return json({ error: e.message || String(e) }, 400);
     }
-    return new Response('Not found', { status: 404 });
+    return notFound(request, env, url);
   },
 };
+
+// トップページ。SNSなどで共有されたときに使われるメタ情報は「https://ドメイン/…」の完全なURLでないと
+// 読んでもらえないので、配信するときに、いまアクセスされているドメインを使って書き換える
+async function page(request, env, url) {
+  if (!env?.ASSETS) return new Response('Not found', { status: 404 });
+  const res = await env.ASSETS.fetch(request);
+  if (typeof HTMLRewriter === 'undefined' || !(res.headers.get('content-type') || '').includes('text/html')) return res;
+  const absolute = (attr) => ({
+    element(el) {
+      const value = el.getAttribute(attr);
+      if (value?.startsWith('/')) el.setAttribute(attr, url.origin + value);
+    },
+  });
+  return new HTMLRewriter()
+    .on('link[rel="canonical"]', absolute('href'))
+    .on('meta[property="og:url"]', absolute('content'))
+    .on('meta[property="og:image"]', absolute('content'))
+    .on('meta[name="twitter:image"]', absolute('content'))
+    .transform(res);
+}
+
+// 存在しないパス。API以外なら、案内のページ（public/404.html）を 404 として返す
+async function notFound(request, env, url) {
+  if (!url.pathname.startsWith('/api/') && env?.ASSETS) {
+    const res = await env.ASSETS.fetch(new Request(`${url.origin}/404.html`));
+    if (res.ok) return new Response(res.body, { status: 404, headers: res.headers });
+  }
+  return new Response('Not found', { status: 404 });
+}
 
 // 回数制限。どの経路にどの制限をかけるかの対応表（制限の中身は wrangler.jsonc の ratelimits）
 const RATE_LIMITS = {
@@ -123,7 +153,7 @@ async function rateLimit(request, env, pathname) {
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' },
+    headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' },
   });
 }
 

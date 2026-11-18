@@ -4,14 +4,29 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>NetCheck — Connection, Browser &amp; DNS Checks</title>
-<meta name="description" content="Check your IP address, browser details, fingerprint, WebRTC leaks, DNS propagation, and IP / domain registration in one place.">
-<script>
-// 保存済みのテーマがあれば、描画の前に反映する（標準テーマが一瞬見えるのを防ぐ）
-try { document.documentElement.dataset.theme = localStorage.getItem('netcheck-theme') || 'mono'; } catch (e) { document.documentElement.dataset.theme = 'mono'; }
-</script>
+<meta name="description" content="Check your IP address and location, browser fingerprint, WebRTC leaks, DNS propagation, mail settings, open ports, HTTP headers and TLS certificates — free, in one place.">
+<meta name="theme-color" content="#f0f0ee">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="/favicon.ico" sizes="32x32">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<!-- 下の canonical / og:url / og:image / twitter:image は、サーバー（src/index.js）が配信時に「https://ドメイン/…」の完全なURLへ書き換える -->
+<link rel="canonical" href="/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="NetCheck">
+<meta property="og:title" content="NetCheck — Connection, Browser &amp; DNS Checks">
+<meta property="og:description" content="Check your IP address and location, browser fingerprint, WebRTC leaks, DNS propagation, mail settings, open ports, HTTP headers and TLS certificates — free, in one place.">
+<meta property="og:url" content="/">
+<meta property="og:image" content="/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="/og.png">
+<script src="/boot.js"></script>
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>
+<noscript><p style="margin:16px;padding:12px;border:2px solid;background:#fff">NetCheck needs JavaScript to run its checks. Please enable JavaScript and reload. ／ このサイトの診断にはJavaScriptが必要です。有効にして再読み込みしてください。</p></noscript>
 <!-- 画面の文言は app.js の I18N から入る（data-i18n がキー）。ここに書いてある英語は読み込み前の初期表示。 -->
 <!-- ここから下の jp-only / cn-only は、日本風・中国風テーマのときだけ出る飾り。
      押せるものはすべて data-joke つきで、押すと「飾りです」と出るだけ。他のテーマでは表示されない。 -->
@@ -319,6 +334,7 @@ try { document.documentElement.dataset.theme = localStorage.getItem('netcheck-th
   <p class="honest retro-only" data-i18n="foot.honestRetro"></p>
   <p class="honest mono-only" data-i18n="foot.honest"></p>
   <p class="honest" data-i18n="foot.more"></p>
+  <p><a href="/privacy" data-i18n="foot.privacy">Privacy &amp; data</a></p>
   <p data-t="copyright">© 2026 NetCheck</p>
 </footer>
 </div>

@@ -1314,3 +1314,11 @@ pre.raw { margin: 0; padding: 8px 10px; font: 13px/1.5 var(--mono); white-space:
 .bbs-post .when { margin-left: 8px; font-size: 12px; color: #555555; }
 .bbs-post .no { margin-right: 6px; font-size: 12px; color: #cc0000; }
 .bbs-post p { margin: 4px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* ---------- 文章だけのページ（プライバシー、404） ---------- */
+main.doc { max-width: 760px; margin: 0 auto; min-height: 40vh; }
+main.doc h1 { margin-top: 26px; }
+main.doc h2 { font-size: 16px; margin: 22px 0 6px; }
+main.doc h2::after { content: ""; }
+main.doc p, main.doc li { line-height: 1.75; }
+main.doc ul { padding-left: 1.4em; }

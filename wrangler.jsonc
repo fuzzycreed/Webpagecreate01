@@ -3,7 +3,9 @@
   "main": "src/index.js",
   "compatibility_date": "2026-06-01",
   // public/ の静的ファイルを配信し、該当ファイルが無いパス（/api/*）だけ Worker が処理する
-  "assets": { "directory": "./public" },
+  // "/" だけは Worker を通す（共有用のメタ情報を、そのときのドメインの完全なURLに書き換えるため）。
+  // それ以外のファイルは、これまでどおり Worker を通さず直接配信される。
+  "assets": { "directory": "./public", "binding": "ASSETS", "run_worker_first": ["/"] },
   // 回数制限（訪問者のIPごと。数え方は Cloudflare の拠点ごとで、多少の誤差がある）。
   // period は 10 か 60（秒）のみ。namespace_id はアカウント内で重複しない任意の番号。
   // 上限を変えるときは limit を書き換えて再デプロイする。

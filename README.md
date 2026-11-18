@@ -119,3 +119,14 @@ RDAPの応答を整える処理は `public/rdap.js` にあり、サーバーと�
 
 サブネット計算・MACアドレスのメーカー検索（`public/oui.json`）・変換ツール・QRコード（`public/vendor/qrcode/`）はブラウザの中だけで動く。
 検索履歴（各タブ最近8件）もブラウザの中だけに保存する。広告ブロッカーの検出は、サイト内のおとり（`public/adsbygoogle.js` と要素1つ）だけで行う。
+
+## サイトの体裁
+
+- アイコンと共有用の画像：`public/favicon.svg` が元で、PNG・ICO・`og.png` は `tools/build-brand-images.mjs` で作り直せる。
+- 共有用のメタ情報（OGP）：`public/index.html` には `/og.png` のように書いておき、配信するときに Worker（`src/index.js` の `page`）が
+  いまのドメインを使って完全なURLに書き換える。そのため `wrangler.jsonc` で `/` だけ Worker を通している。
+- セキュリティ関連のヘッダー：`public/_headers`。ページ内に直接書いたスクリプトは禁止しているので、
+  スクリプトを足すときは別ファイルにする（テーマの先読みが `public/boot.js` に分かれているのはこのため）。
+  ブラウザから新しい外部サービスに問い合わせる場合、https であれば追加の設定は要らない。
+- プライバシーの説明：`public/privacy.html`（英語と日本語）。外部サービスや保存するデータを増やしたら、ここも直すこと。
+- 存在しないパス：`public/404.html` を 404 として返す（`src/index.js` の `notFound`）。

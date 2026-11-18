@@ -1,0 +1,14 @@
+# すべてのページとファイルに付けるセキュリティ関連のヘッダー。
+# Content-Security-Policy の要点：
+#   script-src 'self'        … このサイト自身のスクリプトだけを実行する（ページ内に直接書いたスクリプトは不可）
+#   style-src 'unsafe-inline' … 要素に直接書いたスタイルを許可（表の余白や地図の部品が使う）
+#   img-src                   … 地図の画像（OpenStreetMap）と、QRコードなど data: の画像
+#   connect-src https:        … 所在地・登録情報・証明書記録などを、ブラウザから各公開サービスへ問い合わせるため
+#                               （登録情報は世界中の登録機関のサーバーへ転送されるので、宛先を列挙できない）
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://tile.openstreetmap.org; connect-src 'self' https:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+  Strict-Transport-Security: max-age=31536000
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), camera=(), microphone=(), payment=(), usb=()
