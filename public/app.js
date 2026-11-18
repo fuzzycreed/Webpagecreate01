@@ -42,6 +42,7 @@ function applyStaticText() {
   for (const n of document.querySelectorAll('[data-i18n]')) n.textContent = t(n.dataset.i18n);
   for (const n of document.querySelectorAll('[data-i18n-ph]')) n.placeholder = t(n.dataset.i18nPh);
   for (const n of document.querySelectorAll('[data-i18n-aria]')) n.setAttribute('aria-label', t(n.dataset.i18nAria));
+  for (const n of document.querySelectorAll('[data-i18n-label]')) n.label = t(n.dataset.i18nLabel); // プルダウンのグループ見出し
   $('#lang-select').value = lang;
 }
 applyStaticText();
@@ -2160,7 +2161,7 @@ function applyTheme(name) {
   // 掲示板は日本風だけの機能。プルダウンの項目を出し入れし、他のテーマに替えたら最初のタブへ戻す
   const select = $('.tab-select');
   const option = select.querySelector('option[value="bbs"]');
-  if (name === 'jp' && !option) select.append(el('option', { value: 'bbs' }, '掲示板'));
+  if (name === 'jp' && !option) (select.querySelector('optgroup:last-of-type') || select).append(el('option', { value: 'bbs' }, '掲示板'));
   if (name !== 'jp') {
     option?.remove();
     if (location.hash.startsWith('#bbs')) location.hash = 'ip';

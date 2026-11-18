@@ -83,36 +83,46 @@
   </div>
   <p class="jp-welcome jp-only" aria-hidden="true">☆★☆ いらっしゃいませ ☆★☆ ゆっくりしていってね ☆★☆ 感想は掲示板まで ☆★☆ キリ番を踏んだら報告してね ☆★☆</p>
   <select class="tab-select" data-i18n-aria="tabs.aria" aria-label="Tools">
-    <option value="ip" data-i18n="tab.ip">IP &amp; Connection</option>
-    <option value="privacy" data-i18n="tab.privacy">Privacy Check</option>
-    <option value="browser" data-i18n="tab.browser">Browser</option>
-    <option value="fp" data-i18n="tab.fp">Fingerprint</option>
-    <option value="webrtc" data-i18n="tab.webrtc">WebRTC</option>
-    <option value="dns" data-i18n="tab.dns">DNS Propagation</option>
-    <option value="lookup" data-i18n="tab.lookup">IP / Domain Lookup</option>
-    <option value="mail" data-i18n="tab.mail">Mail Check</option>
-    <option value="ports" data-i18n="tab.ports">Port Check</option>
-    <option value="http" data-i18n="tab.http">HTTP Headers</option>
-    <option value="certs" data-i18n="tab.certs">Certificates</option>
-    <option value="tools" data-i18n="tab.tools">Tools</option>
+    <optgroup label="About you" data-i18n-label="group.you">
+      <option value="ip" data-i18n="tab.ip">IP &amp; Connection</option>
+      <option value="privacy" data-i18n="tab.privacy">Privacy Check</option>
+      <option value="browser" data-i18n="tab.browser">Browser</option>
+      <option value="fp" data-i18n="tab.fp">Fingerprint</option>
+      <option value="webrtc" data-i18n="tab.webrtc">WebRTC</option>
+    </optgroup>
+    <optgroup label="Look up" data-i18n-label="group.lookup">
+      <option value="lookup" data-i18n="tab.lookup">IP / Domain Lookup</option>
+      <option value="dns" data-i18n="tab.dns">DNS Propagation</option>
+      <option value="mail" data-i18n="tab.mail">Mail Check</option>
+      <option value="certs" data-i18n="tab.certs">Certificates</option>
+      <option value="ports" data-i18n="tab.ports">Port Check</option>
+      <option value="http" data-i18n="tab.http">HTTP Headers</option>
+    </optgroup>
+    <optgroup label="More" data-i18n-label="group.more">
+      <option value="tools" data-i18n="tab.tools">Tools</option>
+    </optgroup>
   </select>
 </header>
 <div class="kouji" aria-hidden="true"></div>
 
 <div class="layout">
 <div class="side">
+  <!-- メニューは3つのグループに分けてある。タブを足すときは、下のプルダウン（.tab-select）にも同じ順で足すこと -->
   <nav class="tabs" role="tablist" data-i18n-aria="tabs.aria" aria-label="Tools">
+    <span class="tab-head" role="presentation" data-i18n="group.you">About you</span>
     <button role="tab" data-tab="ip" data-i18n="tab.ip">IP &amp; Connection</button>
     <button role="tab" data-tab="privacy" data-i18n="tab.privacy">Privacy Check</button>
     <button role="tab" data-tab="browser" data-i18n="tab.browser">Browser</button>
     <button role="tab" data-tab="fp" data-i18n="tab.fp">Fingerprint</button>
     <button role="tab" data-tab="webrtc" data-i18n="tab.webrtc">WebRTC</button>
-    <button role="tab" data-tab="dns" data-i18n="tab.dns">DNS Propagation</button>
+    <span class="tab-head" role="presentation" data-i18n="group.lookup">Look up</span>
     <button role="tab" data-tab="lookup" data-i18n="tab.lookup">IP / Domain Lookup</button>
+    <button role="tab" data-tab="dns" data-i18n="tab.dns">DNS Propagation</button>
     <button role="tab" data-tab="mail" data-i18n="tab.mail">Mail Check</button>
+    <button role="tab" data-tab="certs" data-i18n="tab.certs">Certificates</button>
     <button role="tab" data-tab="ports" data-i18n="tab.ports">Port Check</button>
     <button role="tab" data-tab="http" data-i18n="tab.http">HTTP Headers</button>
-    <button role="tab" data-tab="certs" data-i18n="tab.certs">Certificates</button>
+    <span class="tab-head" role="presentation" data-i18n="group.more">More</span>
     <button role="tab" data-tab="tools" data-i18n="tab.tools">Tools</button>
     <button role="tab" data-tab="bbs" class="jp-only">掲示板</button>
   </nav>

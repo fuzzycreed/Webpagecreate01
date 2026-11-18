@@ -345,6 +345,9 @@ export const I18N = {
     'pw.close': 'Close',
     'pw.output': 'Generated string',
 
+    'group.you': 'About you',
+    'group.lookup': 'Look up',
+    'group.more': 'More',
     'tab.privacy': 'Privacy Check',
     'tab.mail': 'Mail Check',
     'tab.tools': 'Tools',
@@ -836,6 +839,9 @@ export const I18N = {
     'pw.close': '閉じる',
     'pw.output': '生成した文字列',
 
+    'group.you': 'あなたの情報',
+    'group.lookup': '調べる',
+    'group.more': 'そのほか',
     'tab.privacy': 'プライバシー診断',
     'tab.mail': 'メール設定',
     'tab.tools': 'ツール',
@@ -1327,6 +1333,9 @@ export const I18N = {
     'pw.close': 'Закрыть',
     'pw.output': 'Созданная строка',
 
+    'group.you': 'О вас',
+    'group.lookup': 'Поиск и проверка',
+    'group.more': 'Ещё',
     'tab.privacy': 'Приватность',
     'tab.mail': 'Почта',
     'tab.tools': 'Инструменты',
@@ -1818,6 +1827,9 @@ export const I18N = {
     'pw.close': '关闭',
     'pw.output': '生成的字符串',
 
+    'group.you': '关于您',
+    'group.lookup': '查询',
+    'group.more': '其他',
     'tab.privacy': '隐私检测',
     'tab.mail': '邮件配置',
     'tab.tools': '工具',
@@ -2309,6 +2321,9 @@ export const I18N = {
     'pw.close': 'Chiudi',
     'pw.output': 'Stringa generata',
 
+    'group.you': 'Su di te',
+    'group.lookup': 'Ricerche',
+    'group.more': 'Altro',
     'tab.privacy': 'Privacy',
     'tab.mail': 'E-mail',
     'tab.tools': 'Strumenti',
@@ -2800,6 +2815,9 @@ export const I18N = {
     'pw.close': 'Schließen',
     'pw.output': 'Erzeugte Zeichenfolge',
 
+    'group.you': 'Über Sie',
+    'group.lookup': 'Abfragen',
+    'group.more': 'Mehr',
     'tab.privacy': 'Datenschutz',
     'tab.mail': 'E-Mail',
     'tab.tools': 'Werkzeuge',
