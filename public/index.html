@@ -17,7 +17,7 @@ try { document.documentElement.dataset.theme = localStorage.getItem('netcheck-th
      押せるものはすべて data-joke つきで、押すと「飾りです」と出るだけ。他のテーマでは表示されない。 -->
 <div class="cn-topbar cn-only">
   <span>📱 打开 NetCheck APP，体验更流畅（其实没有APP）</span>
-  <button type="button" data-joke>立即打开</button>
+  <button type="button" data-pwgen>立即打开</button>
 </div>
 <div class="page">
 <header class="top">
@@ -232,7 +232,7 @@ try { document.documentElement.dataset.theme = localStorage.getItem('netcheck-th
 <div class="cn-float cn-only">
   <button type="button" data-joke>客服</button>
   <button type="button" data-joke>红包</button>
-  <button type="button" data-joke>APP</button>
+  <button type="button" data-pwgen>APP</button>
 </div>
 <div class="cn-bar cn-only" id="cn-bar">
   <span>🎁 恭喜！您已被选为今日幸运访客！（开玩笑的，什么奖品都没有）</span>
@@ -256,6 +256,29 @@ try { document.documentElement.dataset.theme = localStorage.getItem('netcheck-th
   <p>⚠ Обнаружено вирусов: <b>13</b>. Удалить?</p>
   <p class="ru2-alert-btns"><button type="button" data-ru2-close>Да</button> <button type="button" data-ru2-close>Нет</button></p>
   <p class="ru2-small">(шутка — вирусов нет, проверка не проводилась)</p>
+</div>
+<!-- 中国風テーマの「APP」を押すと開く、ランダム文字列の生成（これは飾りではなく実際に動く） -->
+<div class="cn-modal cn-only" id="pw-modal" hidden role="dialog" aria-labelledby="pw-title">
+  <div class="pw-box">
+    <button type="button" class="cn-modal-x" id="pw-x" data-i18n-aria="pw.close" aria-label="Close">×</button>
+    <p class="pw-title" id="pw-title" data-i18n="pw.title">Random string generator</p>
+    <textarea id="pw-out" class="pw-out" rows="2" readonly spellcheck="false" data-i18n-aria="pw.output" aria-label="Generated string"></textarea>
+    <p class="pw-actions">
+      <button type="button" class="pw-btn main" id="pw-copy" data-i18n="pw.copy">Copy</button>
+      <button type="button" class="pw-btn" id="pw-regen" data-i18n="pw.regen">Regenerate</button>
+    </p>
+    <p class="pw-row"><label for="pw-len" data-i18n="pw.length">Length</label>
+      <input type="range" id="pw-range" min="4" max="64" value="16" aria-hidden="true" tabindex="-1">
+      <input type="number" id="pw-len" min="4" max="128" value="16" inputmode="numeric">
+    </p>
+    <p class="pw-checks">
+      <label><input type="checkbox" id="pw-upper" checked> <span data-i18n="pw.upper">Uppercase (A–Z)</span></label>
+      <label><input type="checkbox" id="pw-lower" checked> <span data-i18n="pw.lower">Lowercase (a–z)</span></label>
+      <label><input type="checkbox" id="pw-digits" checked> <span data-i18n="pw.digits">Digits (0–9)</span></label>
+      <label><input type="checkbox" id="pw-symbols"> <span data-i18n="pw.symbols">Symbols (!@#…)</span></label>
+    </p>
+    <p class="cn-small" data-i18n="pw.note">Generated in your browser. Nothing is sent or stored.</p>
+  </div>
 </div>
 <button type="button" class="jp-top jp-only" id="jp-top">▲<br>TOP</button>
 <div class="jp-trail jp-only" id="jp-trail" aria-hidden="true"></div>

@@ -1469,6 +1469,7 @@ function cnEffects() {
     removeEventListener('keydown', onKey);
     modal.hidden = true;
     feed.hidden = true;
+    $('#pw-modal').hidden = true;
   };
 }
 
@@ -1497,13 +1498,14 @@ getInfo()
   })
   .catch(() => {});
 
-// 隠しプルダウン：タイトル部分を続けて10回クリックで出す。一度出したら、このブラウザでは出たままにする
+// 隠しプルダウン：タイトル部分を続けて10回クリックすると出る。出ているときに同じ操作をすると隠れる。
+// 出ているかどうかはブラウザに保存する。隠しても、選んだテーマはそのまま残る
 const UNLOCK_CLICKS = 10;
 let clicks = 0;
 let clickTimer;
-function unlockThemes() {
-  $('#theme-pick').hidden = false;
-  store.set('netcheck-unlocked', '1');
+function showThemePicker(visible) {
+  $('#theme-pick').hidden = !visible;
+  store.set('netcheck-unlocked', visible ? '1' : '0');
 }
 $('#title-row').addEventListener('click', (e) => {
   if (e.target.closest('#theme-pick, #lang-pick')) return;
@@ -1511,12 +1513,13 @@ $('#title-row').addEventListener('click', (e) => {
   clickTimer = setTimeout(() => (clicks = 0), 2000); // 2秒あいたら数え直し
   if (++clicks >= UNLOCK_CLICKS) {
     clicks = 0;
-    unlockThemes();
-    $('#theme-select').focus();
+    const visible = $('#theme-pick').hidden;
+    showThemePicker(visible);
+    if (visible) $('#theme-select').focus();
   }
 });
 $('#theme-select').addEventListener('change', (e) => applyTheme(e.target.value));
-if (store.get('netcheck-unlocked') === '1') unlockThemes();
+if (store.get('netcheck-unlocked') === '1') showThemePicker(true);
 applyTheme(document.documentElement.dataset.theme);
 
 // 訪問回数はこのブラウザの中だけで数える（サーバーには送らない）
@@ -1536,6 +1539,89 @@ function toast(message) {
 }
 for (const btn of document.querySelectorAll('[data-joke]')) btn.addEventListener('click', () => toast(btn.dataset.joke || '开玩笑的，这里什么都没有 :)'));
 $('#cn-bar-close').addEventListener('click', () => ($('#cn-bar').hidden = true));
+
+// ---------- ランダム文字列の生成（中国風テーマの「APP」から開く） ----------
+
+const PW_SETS = {
+  upper: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+  lower: 'abcdefghijklmnopqrstuvwxyz',
+  digits: '0123456789',
+  symbols: '!@#$%^&*()-_=+[]{};:,.?/',
+};
+
+// 0以上 max 未満の、偏りのない乱数（暗号用の乱数から、範囲に収まらない値を捨てて作る）
+function randomBelow(max) {
+  const limit = Math.floor(0x100000000 / max) * max;
+  const buf = new Uint32Array(1);
+  do crypto.getRandomValues(buf);
+  while (buf[0] >= limit);
+  return buf[0] % max;
+}
+
+function randomString(length, kinds) {
+  const sets = kinds.map((k) => PW_SETS[k]);
+  const all = sets.join('');
+  const chars = Array.from({ length }, () => all[randomBelow(all.length)]);
+  // 選んだ種類がそれぞれ最低1文字は入るよう、重ならない位置に1文字ずつ置く
+  const free = chars.map((_, i) => i);
+  for (const set of sets.slice(0, length)) {
+    const at = free.splice(randomBelow(free.length), 1)[0];
+    chars[at] = set[randomBelow(set.length)];
+  }
+  return chars.join('');
+}
+
+function pwGenerate() {
+  const out = $('#pw-out');
+  const kinds = ['upper', 'lower', 'digits', 'symbols'].filter((k) => $(`#pw-${k}`).checked);
+  const length = Math.min(128, Math.max(4, Math.floor(Number($('#pw-len').value)) || 16));
+  $('#pw-copy').disabled = !kinds.length;
+  $('#pw-copy').textContent = t('pw.copy');
+  if (!kinds.length) {
+    out.value = t('pw.none');
+    return;
+  }
+  out.value = randomString(length, kinds);
+  out.rows = Math.min(6, Math.max(2, Math.ceil(length / 28)));
+}
+
+function pwOpen() {
+  $('#pw-modal').hidden = false;
+  pwGenerate();
+  $('#pw-copy').focus();
+}
+const pwClose = () => ($('#pw-modal').hidden = true);
+
+for (const btn of document.querySelectorAll('[data-pwgen]')) btn.addEventListener('click', pwOpen);
+$('#pw-x').addEventListener('click', pwClose);
+$('#pw-modal').addEventListener('click', (e) => e.target === e.currentTarget && pwClose());
+addEventListener('keydown', (e) => e.key === 'Escape' && pwClose());
+$('#pw-regen').addEventListener('click', pwGenerate);
+for (const id of ['pw-upper', 'pw-lower', 'pw-digits', 'pw-symbols']) $(`#${id}`).addEventListener('change', pwGenerate);
+// 文字数は、つまみと数字の入力欄のどちらを動かしても、もう一方に反映して作り直す
+$('#pw-range').addEventListener('input', (e) => {
+  $('#pw-len').value = e.target.value;
+  pwGenerate();
+});
+$('#pw-len').addEventListener('input', (e) => {
+  $('#pw-range').value = e.target.value;
+  pwGenerate();
+});
+$('#pw-len').addEventListener('change', (e) => {
+  e.target.value = Math.min(128, Math.max(4, Math.floor(Number(e.target.value)) || 16)); // 範囲外の入力は直す
+  pwGenerate();
+});
+$('#pw-copy').addEventListener('click', async () => {
+  const out = $('#pw-out');
+  try {
+    await navigator.clipboard.writeText(out.value);
+  } catch {
+    out.select(); // 古いブラウザや権限のない環境向けの予備の方法
+    document.execCommand('copy');
+  }
+  $('#pw-copy').textContent = t('pw.copied');
+  setTimeout(() => ($('#pw-copy').textContent = t('pw.copy')), 1500);
+});
 
 // ---------- タブ切り替え ----------
 
