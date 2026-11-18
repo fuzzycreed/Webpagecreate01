@@ -1280,3 +1280,38 @@ pre.raw { margin: 0; padding: 8px 10px; font: 13px/1.5 var(--mono); white-space:
 .pw-checks input { accent-color: #ff4d2d; width: 16px; height: 16px; }
 @media (max-width: 400px) { .pw-checks { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { .pw-box { animation: none; } }
+
+/* ---------- 結果のコピー、検索履歴 ---------- */
+.btn.small { padding: 2px 10px; font-size: 12px; }
+.copybar { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; margin: 8px 0 0; }
+.history { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; margin: -4px 0 10px; }
+.history:empty { display: none; }
+.history .chip, .chips a.chip { cursor: pointer; font: inherit; font-size: 12px; color: var(--link); text-decoration: none; }
+.history .chip:hover, .chips a.chip:hover { text-decoration: underline; }
+.history .clear { border: 0; background: none; padding: 0 4px; cursor: pointer; font: inherit; font-size: 12px; color: var(--muted); text-decoration: underline; }
+.chips.scroll { max-height: 260px; overflow-y: auto; }
+
+/* ---------- 採点 ---------- */
+.grade { display: inline-block; min-width: 1.6em; padding: 0 6px; text-align: center; font: bold 22px/1.3 var(--mono); border: 2px solid currentColor; border-radius: var(--radius); }
+.grade.g-a, .grade.g-b { color: var(--ok); background: var(--ok-soft); }
+.grade.g-c, .grade.g-d { color: var(--warn); background: var(--warn-soft); }
+.grade.g-f { color: var(--bad); background: var(--bad-soft); }
+
+/* ---------- ツール ---------- */
+.conv-box { display: block; width: 100%; padding: 6px 8px; resize: vertical; color: #000000; background: #ffffff; border: var(--input-border); border-radius: calc(var(--radius) * .6); font: 13px/1.5 var(--mono); overflow-wrap: anywhere; }
+.conv-buttons { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0; }
+.de-only { display: none; }
+:root[data-theme="de"] .de-only { display: block; }
+.qr-out { display: block; max-width: 100%; height: auto; margin: 4px 0 8px; background: #ffffff; border: 6px solid #ffffff; image-rendering: pixelated; }
+:root[data-theme="ru2"] .conv-box { background: #000000; color: #39ff14; }
+
+/* ---------- 掲示板（日本風のみ） ---------- */
+.bbs-form { display: grid; gap: 6px; max-width: 520px; margin-bottom: 14px; padding: 8px; background: #ffffcc; border: 2px inset #ffffff; }
+.bbs-form textarea { font: inherit; padding: 4px 6px; border: var(--input-border); resize: vertical; }
+.bbs-form .btn { justify-self: start; }
+.bbs-hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+.bbs-post { margin: 0 0 8px; padding: 6px 8px; background: #ffffff; border: 1px solid #9a9a9a; border-left: 6px solid #000080; }
+.bbs-post .who { font-weight: bold; color: #006600; }
+.bbs-post .when { margin-left: 8px; font-size: 12px; color: #555555; }
+.bbs-post .no { margin-right: 6px; font-size: 12px; color: #cc0000; }
+.bbs-post p { margin: 4px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }

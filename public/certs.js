@@ -33,3 +33,23 @@ export function normalizeCerts(raw) {
   list.sort((a, b) => String(b.notBefore).localeCompare(String(a.notBefore)));
   return { total: list.length, certs: list.slice(0, MAX_SHOWN) };
 }
+
+// ---------- サブドメインの洗い出し ----------
+
+export const subdomainsUrl = (name) => `https://crt.sh/?q=${encodeURIComponent(`%.${name}`)}&output=json&deduplicate=Y`;
+
+const MAX_SUBDOMAINS = 500;
+
+// 証明書に書かれた名前のうち、調べたドメインの下にあるものを重複なく集める
+export function normalizeSubdomains(raw, name) {
+  const suffix = `.${name.toLowerCase()}`;
+  const found = new Set();
+  for (const c of Array.isArray(raw) ? raw : []) {
+    for (const line of String(c.name_value || c.common_name || '').split('\n')) {
+      const host = line.trim().toLowerCase().replace(/^\*\./, '');
+      if (host.endsWith(suffix) && /^[a-z0-9._-]+$/.test(host)) found.add(host);
+    }
+  }
+  const list = [...found].sort((a, b) => a.split('.').reverse().join('.').localeCompare(b.split('.').reverse().join('.')));
+  return { total: list.length, subdomains: list.slice(0, MAX_SUBDOMAINS) };
+}

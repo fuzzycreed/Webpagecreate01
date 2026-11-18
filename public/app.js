@@ -3,10 +3,10 @@
 
 import { I18N } from './i18n.js';
 import { parseIpRdap, parseDomainRdap, rdapIpUrls } from './rdap.js';
-import { normalizeCerts, certsUrl } from './certs.js';
+import { normalizeCerts, certsUrl, normalizeSubdomains, subdomainsUrl } from './certs.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
-const TABS = ['ip', 'browser', 'fp', 'webrtc', 'dns', 'lookup', 'ports', 'http', 'certs'];
+const TABS = ['ip', 'privacy', 'browser', 'fp', 'webrtc', 'dns', 'lookup', 'mail', 'ports', 'http', 'certs', 'tools', 'bbs'];
 
 const store = {
   get(key) {
@@ -90,6 +90,88 @@ const fill = (node, ...kids) => node.replaceChildren(...kids.flat().filter(Boole
 const loading = (text = t('loading')) => el('p', { class: 'muted' }, text);
 const listTable = (heads, rows) =>
   el('div', { class: 'card' }, el('table', { class: 'list' }, el('thead', {}, el('tr', {}, heads.map((h) => (Array.isArray(h) ? el('th', { class: 'num' }, h[0]) : el('th', {}, h))))), el('tbody', {}, rows)));
+
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    // 古いブラウザや権限のない環境向けの予備の方法
+    const box = el('textarea', { style: 'position:fixed;left:-9999px;top:0' });
+    box.value = text;
+    document.body.append(box);
+    box.select();
+    document.execCommand('copy');
+    box.remove();
+  }
+}
+
+// 結果の上に「文字でコピー」「JSONでコピー」のボタンを置く
+function copyBar(body, data) {
+  const bar = el('p', { class: 'copybar' });
+  const button = (label, getText) => {
+    const b = el('button', { type: 'button', class: 'btn small' }, label);
+    b.addEventListener('click', async () => {
+      await copyText(getText());
+      b.textContent = t('pw.copied');
+      setTimeout(() => (b.textContent = label), 1500);
+    });
+    return b;
+  };
+  bar.append(
+    button(t('copy.text'), () => [...body.children].filter((n) => n !== bar).map((n) => n.innerText).join('\n')),
+    button(t('copy.json'), () => JSON.stringify(data, null, 2)),
+  );
+  body.prepend(bar);
+}
+
+// 検索履歴：タブごとに最近の8件をこのブラウザに残し、入力欄の下に並べる（サーバーには送らない）
+const HISTORY_MAX = 8;
+function loadHistory() {
+  try {
+    return JSON.parse(store.get('netcheck-history') || '{}') || {};
+  } catch {
+    return {};
+  }
+}
+function remember(tab, label, qs) {
+  const all = loadHistory();
+  all[tab] = [{ label, qs }, ...(all[tab] || []).filter((x) => x.qs !== qs)].slice(0, HISTORY_MAX);
+  store.set('netcheck-history', JSON.stringify(all));
+  renderHistory(tab);
+}
+function renderHistory(tab) {
+  const form = $(`#${tab}-form`);
+  if (!form) return;
+  let box = $(`#${tab}-history`);
+  if (!box) {
+    box = el('div', { class: 'history', id: `${tab}-history` });
+    form.after(box);
+  }
+  const list = loadHistory()[tab] || [];
+  if (!list.length) return box.replaceChildren();
+  const clear = el('button', { type: 'button', class: 'clear' }, t('hist.clear'));
+  clear.addEventListener('click', () => {
+    const all = loadHistory();
+    delete all[tab];
+    store.set('netcheck-history', JSON.stringify(all));
+    renderHistory(tab);
+  });
+  box.replaceChildren(
+    el('span', { class: 'sub' }, t('hist.label')),
+    ...list.map((x) => {
+      const chip = el('button', { type: 'button', class: 'chip' }, x.label);
+      chip.addEventListener('click', () => go(tab, new URLSearchParams(x.qs)));
+      return chip;
+    }),
+    clear,
+  );
+}
+// 履歴に出す見出し（検索条件から作る）
+function historyLabel(qs) {
+  if (qs.get('name')) return `${qs.get('name')} (${qs.get('type') || 'A'})`;
+  if (qs.get('host')) return qs.get('host');
+  return qs.get('q') || '';
+}
 
 async function sha256(input) {
   const data = typeof input === 'string' ? new TextEncoder().encode(input) : input;
@@ -510,6 +592,126 @@ async function initFp() {
       kvTable([[t('fp.hash'), fontsHash]]),
     ),
   );
+
+  // そのほかの手がかり（取得に少し時間がかかるものがあるので、後から足す）
+  const [voices, devices, perms, gpu, blocker] = await Promise.all([safe(listVoices), safe(countDevices), safe(permissionStates), safe(gpuInfo), safe(detectBlocker)]);
+  body.append(
+    ...section(
+      t('fp.secMore'),
+      kvTable([
+        [t('fp.voices'), voices ? `${voices.length}${voices.length ? ` — ${voices.slice(0, 4).join(', ')}${voices.length > 4 ? ' …' : ''}` : ''}` : null],
+        [t('fp.devices'), devices ? t('fp.devVal', devices.audioinput, devices.videoinput, devices.audiooutput) : null],
+        [t('fp.perms'), perms?.length ? lines(perms.map(([name, state]) => `${name}: ${state}`)) : null],
+        ['WebGPU', gpu],
+        [t('pv.blocker'), blocker ? (blocker.cosmetic || blocker.network ? t('pv.blockerOn') : t('pv.blockerOff')) : null],
+      ]),
+    ),
+  );
+}
+
+// 音声合成の声の一覧（OSや言語設定で変わる）。読み込みが遅れることがあるので少し待つ
+function listVoices() {
+  if (!window.speechSynthesis) return null;
+  const names = () => speechSynthesis.getVoices().map((v) => v.name);
+  if (names().length) return names();
+  return new Promise((done) => {
+    const finish = () => done(names());
+    speechSynthesis.addEventListener('voiceschanged', finish, { once: true });
+    setTimeout(finish, 600);
+  });
+}
+
+// マイク・カメラ・スピーカーの台数（許可を求めずに分かるのは台数まで）
+async function countDevices() {
+  const list = await navigator.mediaDevices.enumerateDevices();
+  const count = { audioinput: 0, videoinput: 0, audiooutput: 0 };
+  for (const d of list) if (d.kind in count) count[d.kind]++;
+  return count;
+}
+
+async function permissionStates() {
+  const out = [];
+  for (const name of ['geolocation', 'notifications', 'camera', 'microphone', 'persistent-storage', 'clipboard-read']) {
+    try {
+      out.push([name, (await navigator.permissions.query({ name })).state]);
+    } catch {} // このブラウザが知らない名前は飛ばす
+  }
+  return out;
+}
+
+async function gpuInfo() {
+  const adapter = await navigator.gpu?.requestAdapter();
+  if (!adapter) return null;
+  const info = adapter.info || {};
+  return [info.vendor, info.architecture, info.device].filter(Boolean).join(' / ') || t('yes');
+}
+
+// 広告ブロッカーの検出。外部には何も問い合わせず、自分のサイト内の「おとり」だけで調べる：
+// 1) 広告っぽいクラス名を付けた要素が隠されるか  2) 広告スクリプト風の名前のファイル（/adsbygoogle.js）の読み込みが止められるか
+async function detectBlocker() {
+  const bait = el('div', { class: 'adsbox ad-banner ad-placement ads', id: 'ad-banner', style: 'position:absolute;left:-9999px;top:0;width:10px;height:10px' }, ' ');
+  document.body.append(bait);
+  await new Promise((done) => setTimeout(done, 120));
+  const cosmetic = bait.offsetHeight === 0 || getComputedStyle(bait).display === 'none';
+  bait.remove();
+  let network = false;
+  try {
+    const res = await fetch('/adsbygoogle.js', { cache: 'no-store' });
+    network = !res.ok;
+  } catch {
+    network = true;
+  }
+  return { cosmetic, network };
+}
+
+// ---------- プライバシー診断（主なチェックのまとめ） ----------
+
+async function runPrivacy() {
+  const body = $('#privacy-body');
+  const btn = $('#privacy-run');
+  btn.disabled = true;
+  body.replaceChildren(loading(t('rtc.testing')));
+  const quiet = (p) => p.catch(() => null);
+  const [info, cands, blocker, canvasA, canvasB] = await Promise.all([
+    quiet(getInfo()),
+    window.RTCPeerConnection ? quiet(gatherCandidates()) : null,
+    quiet(detectBlocker()),
+    quiet(canvasFingerprint()),
+    quiet(canvasFingerprint()),
+  ]);
+
+  const rows = []; // [項目, 結果, 判定（ok / warn / info）]
+  if (info) {
+    rows.push([t('ip.address'), info.ip, 'info']);
+    rows.push([t('pv.location'), [info.geo.city, info.geo.region, info.geo.country].filter(Boolean).join(', ') || '—', 'info']);
+    const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (info.geo.timezone && browserTz) rows.push([t('pv.tz'), info.geo.timezone === browserTz ? t('pv.tzOk') : t('pv.tzBad', info.geo.timezone, browserTz), info.geo.timezone === browserTz ? 'ok' : 'warn']);
+  }
+  if (cands) {
+    const serverIp = info?.ip || '';
+    const real = cands.filter((c) => !c.address.endsWith('.local'));
+    // 種類（IPv4 / IPv6）が同じなのに、サイトから見えるIPと違う外部IPが出ていたら漏れ
+    const leaked = [...new Set(real.filter((c) => c.type !== 'host' && serverIp && c.address !== serverIp && c.address.includes(':') === serverIp.includes(':')).map((c) => c.address))];
+    if (leaked.length) rows.push(['WebRTC', t('pv.webrtcLeak', leaked.join(', ')), 'warn']);
+    else if (real.some((c) => c.type === 'host')) rows.push(['WebRTC', t('pv.webrtcLocal'), 'warn']);
+    else rows.push(['WebRTC', t('pv.webrtcOk'), 'ok']);
+  } else if (!window.RTCPeerConnection) rows.push(['WebRTC', t('pv.webrtcOk'), 'ok']);
+  if (info && info.tor !== null) rows.push([t('ip.tor'), info.tor ? t('yes') : t('no'), 'info']);
+  if (blocker) rows.push([t('pv.blocker'), blocker.cosmetic || blocker.network ? t('pv.blockerOn') : t('pv.blockerOff'), blocker.cosmetic || blocker.network ? 'ok' : 'info']);
+  const signals = navigator.globalPrivacyControl === true || navigator.doNotTrack === '1';
+  rows.push([t('pv.gpc'), signals ? t('pv.sent') : t('pv.notSent'), signals ? 'ok' : 'info']);
+  if (canvasA && canvasB) rows.push([t('pv.canvas'), canvasA.hash === canvasB.hash ? t('pv.canvasStable') : t('pv.canvasRandom'), canvasA.hash === canvasB.hash ? 'info' : 'ok']);
+  rows.push([t('br.cookie'), navigator.cookieEnabled ? t('yes') : t('no'), 'info']);
+  if (navigator.webdriver) rows.push([t('br.webdriver'), t('yes'), 'info']);
+
+  const VERDICT = { ok: ['ok', 'pv.good'], warn: ['warn', 'pv.attention'], info: ['info', 'pv.neutral'] };
+  const flagged = rows.filter((r) => r[2] === 'warn').length;
+  fill(
+    body,
+    note(flagged ? 'warn' : 'ok', flagged ? t('pv.summary', flagged) : t('pv.allGood')),
+    listTable([t('pv.thCheck'), t('pv.thResult'), t('rtc.thVerdict')], rows.map(([name, result, v]) => el('tr', {}, el('td', {}, name), el('td', { class: 'ans' }, result), el('td', {}, badge(VERDICT[v][0], t(VERDICT[v][1])))))),
+  );
+  btn.disabled = false;
 }
 
 // ---------- WebRTC ----------
@@ -714,6 +916,7 @@ async function runDns(name, type, ecs) {
       ...dnsTable(t('dns.secResolvers'), t('dns.hintResolvers'), byGroup('resolver'), majority, data.type),
       ...dnsTable(t('dns.secGeo'), t('dns.hintGeo'), byGroup('geo'), majority, data.type),
     );
+    copyBar(body, data);
   } catch (e) {
     body.replaceChildren(note('bad', errText(e.message)));
   } finally {
@@ -722,6 +925,7 @@ async function runDns(name, type, ecs) {
 }
 
 function initDns() {
+  renderHistory('dns');
   $('#dns-form').addEventListener('submit', (e) => {
     e.preventDefault();
     const name = $('#dns-name').value.trim();
@@ -767,6 +971,7 @@ const lines = (items) => (items?.length ? items.map((v) => el('div', {}, v)) : n
 const lookupLink = (value) => el('a', { href: `#lookup?q=${encodeURIComponent(value)}` }, value);
 
 function initSearch(tab) {
+  renderHistory(tab);
   $(`#${tab}-form`).addEventListener('submit', (e) => {
     e.preventDefault();
     const q = $(`#${tab}-q`).value.trim();
@@ -880,11 +1085,44 @@ async function runSearch(tab, api, q, render, enrich) {
     if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
     await enrich(data);
     render(data, hero, body);
+    copyBar(body, data);
   } catch (e) {
     body.replaceChildren(note('bad', errText(e.message)));
   } finally {
     btn.disabled = false;
   }
+}
+
+// AS番号の結果。広報しているIP帯の一覧は、RIPE の公開API（stat.ripe.net）にブラウザから直接聞く
+async function enrichAsn(d) {
+  if (!d.found) return;
+  try {
+    const r = await fetchJson(`https://stat.ripe.net/data/announced-prefixes/data.json?resource=AS${d.asn}`);
+    d.prefixes = (r?.data?.prefixes || []).map((x) => x.prefix).filter(Boolean).sort((a, b) => a.includes(':') - b.includes(':') || a.localeCompare(b, undefined, { numeric: true }));
+  } catch {
+    d.prefixes = null;
+  }
+}
+
+function renderAsn(d, hero, body) {
+  if (!d.found) {
+    body.replaceChildren(note('warn', t('asn.notFound')));
+    return;
+  }
+  hero.replaceChildren(stat(t('ip.asn'), `AS${d.asn}`, null, true), stat(t('ip.operator'), d.name), stat(t('ip.country'), d.country ? `${flag(d.country)} ${regionName(d.country)}` : null), stat(t('lk.rir'), d.registry?.toUpperCase(), fmtDate(d.allocated)));
+  const list = d.prefixes || [];
+  const SHOWN = 300;
+  fill(
+    body,
+    d.prefixes === null ? note('warn', t('asn.prefixFail')) : null,
+    d.prefixes
+      ? section(
+          t('asn.prefixes', list.filter((x) => !x.includes(':')).length, list.filter((x) => x.includes(':')).length),
+          list.length ? el('div', { class: 'card' }, el('div', { class: 'chips scroll' }, list.slice(0, SHOWN).map((x) => el('a', { class: 'chip', href: `#lookup?q=${encodeURIComponent(x.split('/')[0])}` }, x)))) : el('p', { class: 'muted' }, t('none')),
+          list.length > SHOWN ? el('p', { class: 'sub' }, t('lk.more', list.length - SHOWN)) : null,
+        )
+      : null,
+  );
 }
 
 // IPの結果の本体。ドメイン検索では brief=true で登録情報を省く
@@ -1032,6 +1270,64 @@ function renderDomain(d, hero, body) {
   );
 }
 
+// ---------- メール設定チェック ----------
+
+function renderMail(d, hero, body) {
+  const { spf, dmarc } = d;
+  const spfOk = spf.records.length === 1 && (spf.all === '-' || spf.all === '~' || spf.redirect);
+  const dmarcOk = dmarc.policy === 'quarantine' || dmarc.policy === 'reject';
+  const overall = spfOk && dmarcOk ? ['ok', 'mail.verdictGood'] : !spf.records.length && !dmarc.record ? ['bad', 'mail.verdictNone'] : ['warn', 'mail.verdictPartial'];
+  const mark = (ok, text) => badge(ok ? 'ok' : 'warn', text);
+  hero.replaceChildren(
+    stat('MX', d.nullMx ? '—' : d.mx.length ? String(d.mx.length) : mark(false, t('mail.none'))),
+    stat('SPF', spf.records.length ? mark(spfOk, spf.all ? `${spf.all}all` : spf.redirect ? 'redirect' : '—') : mark(false, t('mail.none'))),
+    stat('DKIM', d.dkim.length ? mark(true, String(d.dkim.length)) : '—'),
+    stat('DMARC', dmarc.record ? mark(dmarcOk, `p=${dmarc.policy || '?'}`) : mark(false, t('mail.none'))),
+  );
+
+  const spfNotes = [];
+  if (!spf.records.length) spfNotes.push(note('bad', t('mail.spfNone')));
+  else {
+    if (spf.records.length > 1) spfNotes.push(note('bad', t('mail.spfMulti')));
+    const byAll = { '-': ['ok', 'mail.spfStrict'], '~': ['ok', 'mail.spfSoft'], '?': ['warn', 'mail.spfNeutral'], '+': ['bad', 'mail.spfOpen'] }[spf.all];
+    if (byAll) spfNotes.push(note(byAll[0], t(byAll[1])));
+    else if (spf.redirect) spfNotes.push(note('info', t('mail.spfRedirect', spf.redirect)));
+    else spfNotes.push(note('warn', t('mail.spfNoAll')));
+    if (spf.lookups) spfNotes.push(el('p', { class: 'sub', style: 'margin:6px 2px 0' }, t('mail.spfLookups', spf.lookups)));
+  }
+  const record = (value) => kvTable([[t('mail.record'), value || t('mail.none')]]);
+
+  fill(
+    body,
+    note(overall[0], t(overall[1])),
+    cols(
+      [
+        ...section(
+          'MX',
+          d.nullMx
+            ? note('info', t('mail.nullMx'))
+            : d.mx.length
+              ? listTable([[t('mail.thPriority')], t('mail.thServer')], d.mx.map((m) => el('tr', {}, el('td', { class: 'num' }, m.priority), el('td', { class: 'ans' }, lookupLink(m.host)))))
+              : note('warn', t('mail.noMx')),
+        ),
+        ...section(
+          'DKIM',
+          d.dkim.length ? [el('p', { class: 'sub', style: 'margin:0 0 6px' }, t('mail.dkimFound', d.dkim.length, d.dkimTried)), listTable([t('mail.selector'), t('mail.record')], d.dkim.map((k) => el('tr', {}, el('td', { class: 'mono' }, k.selector), el('td', { class: 'ans' }, k.record))))] : note('info', t('mail.dkimNone')),
+        ),
+      ],
+      [
+        ...section('SPF', spf.records.length ? kvTable(spf.records.map((r) => [t('mail.record'), r])) : null, spfNotes),
+        ...section(
+          'DMARC',
+          dmarc.record ? kvTable([[t('mail.record'), dmarc.record], [t('mail.reports'), dmarc.rua]]) : null,
+          dmarc.record ? note(dmarcOk ? 'ok' : 'warn', I18N.en[`mail.dmarcP.${dmarc.policy}`] ? t(`mail.dmarcP.${dmarc.policy}`) : t('mail.dmarcP.none')) : note('bad', t('mail.dmarcNone')),
+        ),
+      ],
+    ),
+    ...section(t('mail.secExtras'), kvTable([['MTA-STS', d.mtaSts || t('mail.none')], ['TLS-RPT', d.tlsRpt || t('mail.none')], ['BIMI', d.bimi || t('mail.none')]])),
+  );
+}
+
 // ---------- ポート開放チェック ----------
 
 const PORT_NAMES = {
@@ -1042,6 +1338,7 @@ const PORT_NAMES = {
 const PORT_BADGE = { open: 'ok', closed: 'info', filtered: 'warn', unsupported: 'bad' };
 
 function initPorts() {
+  renderHistory('ports');
   $('#ports-form').addEventListener('submit', (e) => {
     e.preventDefault();
     const host = $('#ports-host').value.trim();
@@ -1073,6 +1370,7 @@ async function queryPorts(qs) {
       note(open ? 'ok' : 'info', t('ports.summary', data.host, open, data.results.length)),
       ...section(data.host, listTable([t('ports.thPort'), t('ports.thService'), t('dns.thState'), [t('dns.thTime')]], rows), el('p', { class: 'sub', style: 'margin:6px 2px 0' }, t('ports.note'))),
     );
+    copyBar(body, data);
   } catch (e) {
     body.replaceChildren(note('bad', errText(e.message)));
   } finally {
@@ -1092,7 +1390,7 @@ function renderHttp(d, hero, body) {
     stat(t('http.status'), statusBadge(last)),
     stat(t('http.redirects'), String(d.hops.filter((h) => h.status >= 300 && h.status < 400 && h.location).length)),
     stat(t('http.total'), `${d.hops.reduce((sum, h) => sum + (h.ms || 0), 0)} ms`),
-    stat(t('http.server'), last.headers ? header(last, 'server') : null),
+    stat(t('http.grade'), last.headers ? el('span', { class: `grade g-${httpGrade(last, header).letter.toLowerCase()}` }, httpGrade(last, header).letter) : null),
   );
   fill(
     body,
@@ -1108,13 +1406,7 @@ function renderHttp(d, hero, body) {
     ),
     last.headers
       ? cols(
-          section(
-            t('http.secSecurity'),
-            listTable(
-              [t('http.thHeader'), t('dns.thState')],
-              SECURITY_HEADERS.map((name) => el('tr', {}, el('td', { class: 'mono' }, name), el('td', {}, header(last, name) ? badge('ok', t('http.present')) : badge('warn', t('http.missing'))))),
-            ),
-          ),
+          securitySection(d, last, header),
           section(t('http.secHeaders', d.hops.length, last.url), kvTable(last.headers.map((h) => [h.name, h.value]))),
         )
       : null,
@@ -1124,6 +1416,43 @@ function renderHttp(d, hero, body) {
       .map((h, i) => (h.headers ? section(t('http.secHeaders', i + 1, h.url), kvTable(h.headers.map((x) => [x.name, x.value]))) : []))
       .reverse()
       .flat(),
+  );
+}
+
+// セキュリティ関連ヘッダーの採点。配点の合計が100点で、点数を A〜F にする
+const HEADER_POINTS = { 'strict-transport-security': 25, 'content-security-policy': 25, 'x-frame-options': 15, 'x-content-type-options': 15, 'referrer-policy': 10, 'permissions-policy': 10 };
+function httpGrade(last, header) {
+  let score = 0;
+  for (const [name, points] of Object.entries(HEADER_POINTS)) {
+    // フレーム対策は、CSP の frame-ancestors でも代わりになる
+    const set = header(last, name) || (name === 'x-frame-options' && /frame-ancestors/i.test(header(last, 'content-security-policy') || ''));
+    // HSTS は https の応答でしか意味がない
+    if (set && !(name === 'strict-transport-security' && !last.url.startsWith('https:'))) score += points;
+  }
+  return { score, letter: score >= 90 ? 'A' : score >= 70 ? 'B' : score >= 50 ? 'C' : score >= 30 ? 'D' : 'F' };
+}
+
+function securitySection(d, last, header) {
+  const grade = httpGrade(last, header);
+  const state = (ok, yes = t('http.present'), no = t('http.missing')) => (ok ? badge('ok', yes) : badge('warn', no));
+  const rows = SECURITY_HEADERS.map((name) => el('tr', {}, el('td', { class: 'mono' }, name), el('td', {}, state(header(last, name)))));
+  const hsts = header(last, 'strict-transport-security');
+  if (hsts) {
+    const age = Number(/max-age\s*=\s*"?(\d+)/i.exec(hsts)?.[1] || 0);
+    rows.splice(
+      1,
+      0,
+      el('tr', {}, el('td', { class: 'sub' }, '└ max-age'), el('td', {}, t('http.hstsAge', Math.round(age / 86400)))),
+      el('tr', {}, el('td', { class: 'sub' }, `└ ${t('http.subdomains')}`), el('td', {}, /includesubdomains/i.test(hsts) ? t('yes') : t('no'))),
+      el('tr', {}, el('td', { class: 'sub' }, '└ preload'), el('td', {}, /preload/i.test(hsts) ? t('yes') : t('no'))),
+    );
+  }
+  if (d.securityTxt) rows.push(el('tr', {}, el('td', { class: 'mono' }, 'security.txt'), el('td', {}, state(d.securityTxt.found, t('http.found'), t('http.notFound')))));
+  return section(
+    t('http.secSecurity'),
+    el('p', { style: 'margin:0 0 6px' }, el('span', { class: `grade g-${grade.letter.toLowerCase()}` }, grade.letter), ` ${grade.score} / 100`),
+    listTable([t('http.thHeader'), t('dns.thState')], rows),
+    el('p', { class: 'sub', style: 'margin:6px 2px 0' }, t('http.gradeNote')),
   );
 }
 
@@ -1162,7 +1491,34 @@ function renderCerts(d, hero, body) {
       el('td', { class: 'ans' }, c.names.slice(0, 4).map((n) => el('div', {}, n)), c.names.length > 4 ? el('div', { class: 'sub' }, t('lk.more', c.names.length - 4)) : null),
     );
   });
-  fill(body, el('p', { class: 'sub', style: 'margin:0 0 6px' }, t('certs.count', d.total, d.certs.length)), listTable([t('certs.thIssued'), t('dm.expires'), t('certs.thIssuer'), t('certs.thNames')], rows));
+  fill(body, ...section(t('certs.secList'), el('p', { class: 'sub', style: 'margin:0 0 6px' }, t('certs.count', d.total, d.certs.length)), listTable([t('certs.thIssued'), t('dm.expires'), t('certs.thIssuer'), t('certs.thNames')], rows)));
+}
+
+// 証明書に出てくる名前から、サブドメインの一覧を作って結果の下に足す（時間がかかるので後から読み込む）
+async function appendSubdomains(q, body) {
+  const [box] = section(t('certs.secSubs', '…'), loading(t('searching')));
+  body.append(box);
+  let data;
+  try {
+    data = await apiJson('/api/subdomains', { q });
+  } catch (e) {
+    if (e.message === 'rate_limited') return fill(box, el('h2', {}, t('certs.secSubs', 0)), note('bad', errText(e.message)));
+    try {
+      // サーバー経由で取れなかったときは、ブラウザから crt.sh に直接聞き直す
+      const raw = await fetch(subdomainsUrl(q), { signal: AbortSignal.timeout(20000), referrerPolicy: 'no-referrer' }).then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))));
+      data = normalizeSubdomains(raw, q);
+    } catch {
+      return fill(box, el('h2', {}, t('certs.secSubs', 0)), note('warn', t('certs.subsFailed')));
+    }
+  }
+  if (!box.isConnected) return; // 待っている間に別の検索が始まった
+  fill(
+    box,
+    el('h2', {}, t('certs.secSubs', data.total)),
+    data.subdomains.length
+      ? [el('div', { class: 'card' }, el('div', { class: 'chips scroll' }, data.subdomains.map((n) => el('a', { class: 'chip', href: `#lookup?q=${encodeURIComponent(n)}` }, n)))), el('p', { class: 'sub', style: 'margin:6px 2px 0' }, t('certs.subsNote'))]
+      : el('p', { class: 'muted' }, t('certs.subsNone')),
+  );
 }
 
 // 入力欄1つ・結果1つの検索タブ（HTTP・証明書）に共通の実行部分
@@ -1175,7 +1531,9 @@ async function runSimple(tab, q, load, render) {
   hero.replaceChildren();
   body.replaceChildren(loading(t('searching')));
   try {
-    render(await load(q), hero, body);
+    const data = await load(q);
+    render(data, hero, body);
+    copyBar(body, data);
   } catch (e) {
     body.replaceChildren(note('bad', errText(e.message)));
   } finally {
@@ -1190,6 +1548,284 @@ async function apiJson(path, params) {
   return data;
 }
 
+// ---------- ツール ----------
+
+// IPv6 を BigInt に／BigInt から文字列に（サブネット計算用）
+function ip6ToBig(text) {
+  if (!/^[0-9a-f:]+$/i.test(text) || text.split('::').length > 2) return null;
+  const [head, tail] = text.split('::');
+  const h = head ? head.split(':') : [];
+  const tl = tail ? tail.split(':') : [];
+  if (text.includes('::') ? h.length + tl.length > 7 : h.length !== 8) return null;
+  const groups = [...h, ...Array(8 - h.length - tl.length).fill('0'), ...tl];
+  if (groups.some((g) => !/^[0-9a-f]{1,4}$/i.test(g))) return null;
+  return groups.reduce((n, g) => (n << 16n) | BigInt(parseInt(g, 16)), 0n);
+}
+function bigToIp6(n) {
+  const groups = Array.from({ length: 8 }, (_, i) => ((n >> BigInt(112 - i * 16)) & 0xffffn).toString(16));
+  // 0 が最も長く続くところを :: に縮める
+  let best = [-1, 0];
+  for (let i = 0; i < 8; ) {
+    let j = i;
+    while (j < 8 && groups[j] === '0') j++;
+    if (j - i > best[1] && j - i > 1) best = [i, j - i];
+    i = j > i ? j : i + 1;
+  }
+  return best[0] < 0 ? groups.join(':') : `${groups.slice(0, best[0]).join(':')}::${groups.slice(best[0] + best[1]).join(':')}`;
+}
+const v4 = (n) => [24, 16, 8, 0].map((sh) => Number((n >> BigInt(sh)) & 255n)).join('.');
+
+function subnetCalc(input) {
+  const m = /^\s*([0-9a-f:.]+)\s*\/\s*(\d{1,3})\s*$/i.exec(input);
+  if (!m) throw new Error('bad_cidr');
+  const prefix = Number(m[2]);
+  const group = (n) => n.toLocaleString(t('locale'));
+  if (m[1].includes(':')) {
+    const addr = ip6ToBig(m[1]);
+    if (addr === null || prefix > 128) throw new Error('bad_cidr');
+    const size = 1n << BigInt(128 - prefix);
+    const network = (addr >> BigInt(128 - prefix)) << BigInt(128 - prefix);
+    const special = /^(fc|fd|fe[89ab]|ff)/i.test(bigToIp6(network).padStart(4, '0')) || network <= 1n;
+    return [[t('sub.network'), `${bigToIp6(network)}/${prefix}`], [t('sub.lastAddr'), bigToIp6(network + size - 1n)], [t('sub.total'), group(size)], [t('sub.kind'), special ? t('sub.special') : t('sub.public')]];
+  }
+  const parts = m[1].split('.').map(Number);
+  if (parts.length !== 4 || parts.some((x) => !Number.isInteger(x) || x < 0 || x > 255) || prefix > 32) throw new Error('bad_cidr');
+  const addr = parts.reduce((n, x) => (n << 8n) | BigInt(x), 0n);
+  const size = 1n << BigInt(32 - prefix);
+  const network = (addr >> BigInt(32 - prefix)) << BigInt(32 - prefix);
+  const last = network + size - 1n;
+  const mask = (0xffffffffn >> BigInt(32 - prefix)) << BigInt(32 - prefix);
+  const [a, b] = v4(network).split('.').map(Number);
+  const special = a === 10 || a === 127 || a === 0 || a >= 224 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 169 && b === 254) || (a === 100 && b >= 64 && b <= 127);
+  // /31 と /32 には「ネットワーク」「ブロードキャスト」用のアドレスがないので、全部がホストになる
+  const hosts = prefix >= 31 ? size : size - 2n;
+  return [
+    [t('sub.network'), `${v4(network)}/${prefix}`],
+    [t('sub.mask'), v4(mask)],
+    [t('sub.wildcard'), v4(mask ^ 0xffffffffn)],
+    prefix < 31 && [t('sub.broadcast'), v4(last)],
+    [t('sub.first'), v4(prefix >= 31 ? network : network + 1n)],
+    [t('sub.last'), v4(prefix >= 31 ? last : last - 1n)],
+    [t('sub.hosts'), group(hosts)],
+    [t('sub.total'), group(size)],
+    [t('sub.kind'), special ? t('sub.special') : t('sub.public')],
+  ];
+}
+
+// MACアドレスの先頭6桁→メーカー名の対応表（public/oui.json、約1.4MB）。最初に使うときだけ読み込む
+let ouiPromise;
+async function macLookup(input) {
+  const hex = input.replace(/[^0-9a-f]/gi, '').toUpperCase();
+  if (hex.length < 6 || /[^0-9a-f:.\-\s]/i.test(input)) throw new Error('bad_mac');
+  ouiPromise ??= fetch('/oui.json').then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))));
+  ouiPromise.catch(() => (ouiPromise = undefined));
+  const table = await ouiPromise;
+  // 先頭1バイトの下から2ビット目が1なら、メーカー割り当てではなく端末が自分で作ったアドレス
+  const local = (parseInt(hex.slice(0, 2), 16) & 2) !== 0;
+  return [['OUI', hex.slice(0, 6).replace(/(..)(?=.)/g, '$1:')], [t('mac.vendor'), table[hex.slice(0, 6)] || t('mac.unknown')], [t('mac.kind'), local ? t('mac.random') : t('mac.global')]];
+}
+
+async function timingRun(url) {
+  const d = await apiJson('/api/timing', { url });
+  const ok = d.runs.filter((r) => !r.error).map((r) => r.ms);
+  return [
+    listTable([t('time.thRun'), t('http.thStatus'), [t('dns.thTime')]], d.runs.map((r, i) => el('tr', {}, el('td', {}, i + 1), el('td', {}, r.error ? badge('bad', errText(r.error)) : badge(r.status >= 400 ? 'bad' : r.status >= 300 ? 'warn' : 'ok', r.status)), el('td', { class: 'num' }, `${r.ms} ms`)))),
+    ok.length ? kvTable([[t('time.min'), `${Math.min(...ok)} ms`], [t('time.avg'), `${Math.round(ok.reduce((a, b) => a + b, 0) / ok.length)} ms`], [t('time.max'), `${Math.max(...ok)} ms`]]) : null,
+    el('p', { class: 'sub', style: 'margin:6px 2px 0' }, t('time.note')),
+  ];
+}
+
+// --- 変換ツール（ドイツ風テーマのみ） ---
+
+// Punycode（xn-- で始まる表記）を元の文字に戻す。ブラウザに標準の機能がないので RFC 3492 の手順をそのまま書いている
+function punycodeDecode(input) {
+  const out = [];
+  const basicEnd = input.lastIndexOf('-');
+  for (let i = 0; i < Math.max(basicEnd, 0); i++) out.push(input.charCodeAt(i));
+  let n = 128;
+  let i = 0;
+  let bias = 72;
+  for (let pos = basicEnd > 0 ? basicEnd + 1 : 0; pos < input.length; ) {
+    const oldi = i;
+    for (let w = 1, k = 36; ; k += 36) {
+      if (pos >= input.length) throw new Error('conv');
+      const c = input.charCodeAt(pos++);
+      const digit = c - 48 < 10 ? c - 22 : c - 65 < 26 ? c - 65 : c - 97 < 26 ? c - 97 : 36;
+      if (digit >= 36) throw new Error('conv');
+      i += digit * w;
+      const tt = k <= bias ? 1 : k >= bias + 26 ? 26 : k - bias;
+      if (digit < tt) break;
+      w *= 36 - tt;
+    }
+    let delta = Math.floor((i - oldi) / (oldi === 0 ? 700 : 2));
+    delta += Math.floor(delta / (out.length + 1));
+    let k = 0;
+    for (; delta > 455; k += 36) delta = Math.floor(delta / 35);
+    bias = k + Math.floor((36 * delta) / (delta + 38));
+    n += Math.floor(i / (out.length + 1));
+    i %= out.length + 1;
+    out.splice(i++, 0, n);
+  }
+  return String.fromCodePoint(...out);
+}
+
+const b64ToBytes = (text) => Uint8Array.from(atob(text.replace(/-/g, '+').replace(/_/g, '/').replace(/\s+/g, '')), (c) => c.charCodeAt(0));
+const CONVERTERS = {
+  b64e: (text) => btoa(Array.from(new TextEncoder().encode(text), (b) => String.fromCharCode(b)).join('')),
+  b64d: (text) => new TextDecoder('utf-8', { fatal: true }).decode(b64ToBytes(text)),
+  urle: (text) => encodeURIComponent(text),
+  urld: (text) => decodeURIComponent(text),
+  hash: (text) => sha256(text),
+  jwt: (text) => {
+    const parts = text.trim().split('.');
+    if (parts.length < 2) throw new Error('conv');
+    const [header, payload] = parts.slice(0, 2).map((p) => JSON.parse(new TextDecoder().decode(b64ToBytes(p))));
+    // 有効期限などの時刻（UNIX秒）は、読める日時を横に添える
+    const dates = ['iat', 'nbf', 'exp'].filter((k) => typeof payload[k] === 'number').map((k) => `${k}: ${new Date(payload[k] * 1000).toISOString()}`);
+    return [JSON.stringify(header, null, 2), JSON.stringify(payload, null, 2), ...dates].join('\n\n');
+  },
+  time: (text) => {
+    const v = text.trim();
+    if (/^-?\d+(\.\d+)?$/.test(v)) {
+      const ms = Math.abs(Number(v)) >= 1e11 ? Number(v) : Number(v) * 1000; // 桁数が多ければミリ秒とみなす
+      const d = new Date(ms);
+      if (Number.isNaN(d.getTime())) throw new Error('conv');
+      return `${d.toISOString()}\n${d.toLocaleString(t('locale'), { dateStyle: 'full', timeStyle: 'long' })}`;
+    }
+    const d = new Date(v || Date.now());
+    if (Number.isNaN(d.getTime())) throw new Error('conv');
+    return `${Math.floor(d.getTime() / 1000)}\n${d.toISOString()}`;
+  },
+  idn: (text) => {
+    const host = text.trim().toLowerCase();
+    if (!host) throw new Error('conv');
+    if (host.split('.').some((l) => l.startsWith('xn--'))) return host.split('.').map((l) => (l.startsWith('xn--') ? punycodeDecode(l.slice(4)) : l)).join('.');
+    return new URL(`http://${host}`).hostname;
+  },
+};
+
+// --- QRコード（ロシア風・とても怪しいテーマのみ） ---
+let qrPromise;
+function loadQr() {
+  qrPromise ??= new Promise((resolve, reject) => {
+    const script = el('script', { src: '/vendor/qrcode/qrcode.js' });
+    script.onload = () => {
+      window.qrcode.stringToBytes = window.qrcode.stringToBytesFuncs['UTF-8']; // 日本語やキリル文字も入れられるようにする
+      resolve(window.qrcode);
+    };
+    script.onerror = () => reject(new Error('qrcode'));
+    document.head.append(script);
+  });
+  return qrPromise;
+}
+
+async function qrMake(text) {
+  const qrcode = await loadQr();
+  const qr = qrcode(0, 'M'); // 0 = 入る最小の大きさを自動で選ぶ、M = 誤り訂正15%
+  qr.addData(text, 'Byte');
+  try {
+    qr.make();
+  } catch {
+    return [note('bad', t('qr.tooLong'))];
+  }
+  const count = qr.getModuleCount();
+  const scale = 6;
+  const quiet = 4; // まわりの余白（マス数）。読み取りに必要
+  const canvas = el('canvas', { class: 'qr-out', width: (count + quiet * 2) * scale, height: (count + quiet * 2) * scale });
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#000000';
+  for (let r = 0; r < count; r++) for (let c = 0; c < count; c++) if (qr.isDark(r, c)) ctx.fillRect((c + quiet) * scale, (r + quiet) * scale, scale, scale);
+  const save = el('a', { class: 'btn small', href: canvas.toDataURL('image/png'), download: 'qr.png' }, t('qr.download'));
+  return [canvas, save];
+}
+
+function initTools() {
+  // 入力欄1つ → 表を出す、という形の小さな道具をまとめて登録する
+  const wire = (id, run) => {
+    $(`#${id}-form`).addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const body = $(`#${id}-body`);
+      body.replaceChildren(loading());
+      try {
+        const out = await run($(`#${id}-q`).value.trim());
+        fill(body, Array.isArray(out[0]) || out[0] === false ? kvTable(out) : out);
+      } catch (err) {
+        body.replaceChildren(note('bad', errText(err.message)));
+      }
+    });
+  };
+  wire('sub', subnetCalc);
+  wire('mac', macLookup);
+  wire('time', timingRun);
+  wire('qr', qrMake);
+  for (const btn of document.querySelectorAll('[data-conv]')) {
+    btn.addEventListener('click', async () => {
+      try {
+        $('#conv-out').value = await CONVERTERS[btn.dataset.conv]($('#conv-in').value);
+      } catch {
+        $('#conv-out').value = t('conv.error');
+      }
+    });
+  }
+}
+
+// ---------- 掲示板（日本風テーマのみ。文言は日本語で固定） ----------
+
+const BBS_ERRORS = { bbs_empty: 'メッセージを入力してください。', bbs_no_links: 'URLは書き込めません。', bbs_bad: '書き込みを送れませんでした。', rate_limited: '書き込みが多すぎます。1分ほど待ってください。', no_board: '掲示板は準備中です。' };
+
+function renderBbs(posts) {
+  const body = $('#bbs-body');
+  if (!posts.length) return body.replaceChildren(el('p', { class: 'muted' }, 'まだ書き込みがありません。最初の足あとをどうぞ！'));
+  body.replaceChildren(
+    ...posts.map((p) =>
+      el(
+        'div',
+        { class: 'bbs-post' },
+        el('span', { class: 'no' }, `No.${p.id}`),
+        el('span', { class: 'who' }, p.name),
+        el('span', { class: 'when' }, new Date(p.created).toLocaleString('ja-JP', { dateStyle: 'short', timeStyle: 'short' })),
+        el('p', {}, p.message),
+      ),
+    ),
+  );
+}
+
+async function loadBbs() {
+  const body = $('#bbs-body');
+  body.replaceChildren(loading('読み込み中…'));
+  try {
+    const res = await fetch('/api/bbs');
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    renderBbs(data.posts);
+  } catch (e) {
+    body.replaceChildren(note('warn', BBS_ERRORS[e.message] || '掲示板を読み込めませんでした。'));
+  }
+}
+
+function initBbs() {
+  loadBbs();
+  $('#bbs-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = $('#bbs-form button');
+    btn.disabled = true;
+    try {
+      const res = await fetch('/api/bbs', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name: $('#bbs-name').value, message: $('#bbs-msg').value, website: $('#bbs-web').value }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      $('#bbs-msg').value = '';
+      if (data.posts) renderBbs(data.posts);
+      toast('書き込みました！');
+    } catch (err) {
+      toast(BBS_ERRORS[err.message] || BBS_ERRORS.bbs_bad);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+}
+
 // ---------- テーマ ----------
 // 標準は白と灰色（mono）。タイトル部分を続けて10回クリックすると、隠しテーマのプルダウンが出る。
 // 隠しテーマの飾りの文言はそのテーマの国の言語で固定。診断結果の表示は Lang の設定に従う。
@@ -1202,7 +1838,7 @@ const THEMES = {
     peekLabel: '！警告！',
     peek: (ip, detail) => `あなたのIPアドレス ${ip}${detail ? `（${detail}）` : ''} は、このサイトから丸見えです！！`,
     counterPre: 'あなたは',
-    counterPost: '回目のご訪問です',
+    counterPost: () => (siteStats ? '人目のお客様です' : '回目のご訪問です'), // サーバーの数字が取れないときは、このブラウザでの回数を出す
     kiriban: '☆ キリ番ゲット！おめでとうございます ☆',
     linkFree: 'このページはリンクフリーです',
     bestViewed: 'Sorry, this page is Japanese only. ／ 推奨環境: 800×600 以上、Internet Explorer 5.5 以上（うそです）',
@@ -1473,6 +2109,40 @@ function cnEffects() {
   };
 }
 
+// ---------- 訪問カウンター ----------
+// localVisits：このブラウザで開いた回数（ブラウザの中だけで数える）。日本風以外の隠しテーマで表示する。
+// siteStats：サイト全体の訪問数（サーバーに数字だけ保存）。日本風テーマの「あなたは○人目」に使う。
+const localVisits = Number(store.get('netcheck-visits') || 0) + 1;
+store.set('netcheck-visits', String(localVisits));
+let siteStats = null;
+
+function renderCounter() {
+  const jp = document.documentElement.dataset.theme === 'jp' && siteStats;
+  const n = jp ? siteStats.total : localVisits;
+  $('#counter').replaceChildren(...String(n).padStart(6, '0').split('').map((d) => el('span', {}, d)));
+  // キリ番：100の倍数か、ゾロ目
+  $('#kiriban').hidden = !(n % 100 === 0 || (n > 10 && /^(\d)\1+$/.test(String(n))));
+  if (siteStats) {
+    $('#jp-today').textContent = String(siteStats.today).padStart(4, '0');
+    $('#jp-yesterday').textContent = String(siteStats.yesterday).padStart(4, '0');
+  }
+}
+
+// 1回の訪問（タブを開いてから閉じるまで）につき1度だけ数える。それ以外は数字を読むだけ
+(async () => {
+  let counted = false;
+  try {
+    counted = sessionStorage.getItem('netcheck-counted') === '1';
+    sessionStorage.setItem('netcheck-counted', '1');
+  } catch {}
+  try {
+    const res = await fetch('/api/counter', { method: counted ? 'GET' : 'POST' });
+    if (!res.ok) return;
+    siteStats = await res.json();
+    applyTheme(document.documentElement.dataset.theme);
+  } catch {}
+})();
+
 let peekInfo = null; // 警告バナーに出す、訪問者自身のIPと場所
 
 function applyTheme(name) {
@@ -1486,6 +2156,15 @@ function applyTheme(name) {
   $('#peek').hidden = !(peekInfo && theme.peek);
   store.set('netcheck-theme', name);
   themeEffects(name);
+  renderCounter();
+  // 掲示板は日本風だけの機能。プルダウンの項目を出し入れし、他のテーマに替えたら最初のタブへ戻す
+  const select = $('.tab-select');
+  const option = select.querySelector('option[value="bbs"]');
+  if (name === 'jp' && !option) select.append(el('option', { value: 'bbs' }, '掲示板'));
+  if (name !== 'jp') {
+    option?.remove();
+    if (location.hash.startsWith('#bbs')) location.hash = 'ip';
+  }
 }
 
 // 見えている情報をそのまま出すだけで、保存はしない
@@ -1521,12 +2200,6 @@ $('#title-row').addEventListener('click', (e) => {
 $('#theme-select').addEventListener('change', (e) => applyTheme(e.target.value));
 if (store.get('netcheck-unlocked') === '1') showThemePicker(true);
 applyTheme(document.documentElement.dataset.theme);
-
-// 訪問回数はこのブラウザの中だけで数える（サーバーには送らない）
-const visits = Number(store.get('netcheck-visits') || 0) + 1;
-store.set('netcheck-visits', String(visits));
-$('#counter').replaceChildren(...String(visits).padStart(6, '0').split('').map((n) => el('span', {}, n)));
-if (visits % 100 === 0 || (visits > 10 && /^(\d)\1+$/.test(String(visits)))) $('#kiriban').hidden = false;
 
 // 中国テーマの飾りボタン：押しても何も起きず、冗談だと知らせるだけ
 let toastTimer;
@@ -1635,6 +2308,13 @@ const INIT = {
   },
   dns: initDns,
   lookup: () => initSearch('lookup'),
+  privacy: () => {
+    $('#privacy-run').addEventListener('click', runPrivacy);
+    runPrivacy();
+  },
+  mail: () => initSearch('mail'),
+  tools: initTools,
+  bbs: initBbs,
   ports: initPorts,
   http: () => initSearch('http'),
   certs: () => initSearch('certs'),
@@ -1646,19 +2326,26 @@ const QUERY = {
     const q = (qs.get('q') || '').trim();
     if (!q) return;
     // 入力がIPアドレスの形ならIP検索、それ以外はドメイン検索に振り分ける
-    if (looksLikeIp(q)) runSearch('lookup', '/api/ip', q, renderIp, enrichIp);
+    if (/^as\s*\d+$/i.test(q)) runSearch('lookup', '/api/asn', q, renderAsn, enrichAsn);
+    else if (looksLikeIp(q)) runSearch('lookup', '/api/ip', q, renderIp, enrichIp);
     else runSearch('lookup', '/api/domain', q, renderDomain, enrichDomain);
   },
   ports: queryPorts,
   http: (qs) => qs.get('q') && runSimple('http', qs.get('q').trim(), (url) => apiJson('/api/http', { url }), renderHttp),
-  certs: (qs) => qs.get('q') && runSimple('certs', qs.get('q').trim(), loadCerts, renderCerts),
+  certs: (qs) =>
+    qs.get('q') &&
+    runSimple('certs', qs.get('q').trim(), loadCerts, (d, hero, body) => {
+      renderCerts(d, hero, body);
+      appendSubdomains(d.query, body);
+    }),
+  mail: (qs) => qs.get('q') && runSimple('mail', qs.get('q').trim(), (q) => apiJson('/api/mail', { q }), renderMail),
 };
 const started = new Set();
 const lastQuery = {};
 
 function activate() {
   let [tab, query = ''] = location.hash.slice(1).split('?');
-  if (!TABS.includes(tab)) tab = 'ip';
+  if (!TABS.includes(tab) || (tab === 'bbs' && document.documentElement.dataset.theme !== 'jp')) tab = 'ip';
   for (const panel of document.querySelectorAll('[data-panel]')) panel.hidden = panel.dataset.panel !== tab;
   for (const btn of document.querySelectorAll('.tabs [data-tab]')) btn.setAttribute('aria-selected', String(btn.dataset.tab === tab));
   $('.tab-select').value = tab;
@@ -1669,6 +2356,7 @@ function activate() {
   if (query && QUERY[tab] && lastQuery[tab] !== query) {
     lastQuery[tab] = query;
     QUERY[tab](new URLSearchParams(query));
+    remember(tab, historyLabel(new URLSearchParams(query)), query);
     scrollTo(0, 0);
   }
 }

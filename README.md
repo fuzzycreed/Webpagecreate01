@@ -13,7 +13,7 @@ npm run deploy   # 初回は wrangler login が必要
 
 ## 構成
 
-- `public/` — 画面（HTML / CSS / JS）。タブは `#ip` `#browser` `#fp` `#webrtc` `#dns` `#lookup` `#ports` `#http` `#certs` で切り替わる
+- `public/` — 画面（HTML / CSS / JS）。タブは `#ip` `#privacy` `#browser` `#fp` `#webrtc` `#dns` `#lookup` `#mail` `#ports` `#http` `#certs` `#tools`（日本風のみ `#bbs`）で切り替わる
 - `src/index.js` — API
   - `GET /api/info` — 接続元IP、位置、ASN、TLSなど
   - `GET /api/dns?name=example.com&type=A[&ecs=203.0.113.0/24]` — 公開DoHリゾルバーと地域別（EDNS Client Subnet）の問い合わせ結果
@@ -23,6 +23,12 @@ npm run deploy   # 初回は wrangler login が必要
   - `GET /api/http?url=https://example.com` — 応答ヘッダーと転送の経路（本文は読まない）
   - `GET /api/certs?q=example.com` — 証明書の発行履歴（crt.sh）
   - `/api/info` と `/api/ip` は、Tor出口ノードかどうか（`tor`）も返す
+  - `GET /api/mail?q=example.com` — MX、SPF、DMARC、DKIM（よくあるセレクター名15個を試す）、MTA-STS など
+  - `GET /api/asn?q=AS13335` — AS番号の名前・国・割り当て元（Team Cymru）。広報しているIP帯はブラウザが stat.ripe.net に聞く
+  - `GET /api/subdomains?q=example.com` — 証明書の発行記録に出てくるサブドメイン（crt.sh）
+  - `GET /api/timing?url=https://example.com` — 同じURLに5回アクセスして応答時間を測る
+  - `/api/http` は security.txt の有無も返す（採点は画面側の `httpGrade`）
+  - `POST /api/counter`（訪問を1回数える）/ `GET /api/counter`、`GET` `POST` `DELETE /api/bbs`（掲示板）
 
 「IP・ドメイン検索」タブは入力欄が1つで、IPアドレスの形なら `/api/ip`、それ以外は `/api/domain` を呼ぶ。
 
@@ -96,3 +102,21 @@ RDAPの応答を整える処理は `public/rdap.js` にあり、サーバーと�
 上限は `wrangler.jsonc` の `ratelimits`、どの経路にどの制限をかけるかは `src/index.js` の `RATE_LIMITS` で決まる。
 `/api/info` とページ本体には制限をかけていない。数え方は Cloudflare の拠点ごとで、多少の誤差がある。
 それでも悪用が目立つようなら、Cloudflare の Turnstile（人間確認）を足すこと。
+
+## 訪問カウンターと掲示板（日本風テーマ）
+
+データは Durable Object（`src/index.js` の `Board` クラス、`wrangler.jsonc` の `durable_objects` と `migrations`）に保存する。
+外部のデータベースを別に作る必要はなく、デプロイ時に自動で用意される。保存するのは訪問数（数字だけ）と、
+掲示板の書き込み（名前・本文・日時）で、IPアドレスは保存しない。
+
+- 訪問数は全テーマの訪問を数えるが、表示するのは日本風テーマだけ（他の隠しテーマは、そのブラウザで開いた回数を出す）。
+- 掲示板の荒らし対策：URLを含む書き込みは拒否、1分に3回まで（`LIMIT_POST`）、本文200文字・名前20文字まで、
+  人には見えない入力欄が埋まっていたら捨てる、新しい200件だけ残す。表示は文字として扱い、HTMLは解釈しない。
+- 書き込みを消すには、Worker のシークレットに `ADMIN_KEY` を設定してから
+  `curl -X DELETE "https://<サイト>/api/bbs?id=<番号>&key=<ADMIN_KEY>"` を実行する。未設定なら削除はできない。
+
+## ツールタブ
+
+サブネット計算・MACアドレスのメーカー検索（`public/oui.json`）・変換ツール・QRコード（`public/vendor/qrcode/`）はブラウザの中だけで動く。
+変換ツールはドイツ風、QRコードはロシア風（とても怪しい）テーマのときだけ表示される（`de-only` / `ru2-only`）。
+検索履歴（各タブ最近8件）もブラウザの中だけに保存する。広告ブロッカーの検出は、サイト内のおとり（`public/adsbygoogle.js` と要素1つ）だけで行う。

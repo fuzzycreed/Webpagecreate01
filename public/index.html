@@ -66,17 +66,20 @@ try { document.documentElement.dataset.theme = localStorage.getItem('netcheck-th
     <button type="button" class="jp-ad a2" data-joke="このバナーは飾りです。着メロはありません">★☆ 着メロ・待受 取り放題 ☆★ <b>ここをクリック！</b></button>
     <button type="button" class="jp-ad a3" data-joke="このバナーは飾りです。何も当たりません">懸賞・プレゼント 毎日当たる！！ <b>応募はこちら</b></button>
   </div>
-  <p class="jp-welcome jp-only" aria-hidden="true">☆★☆ いらっしゃいませ ☆★☆ ゆっくりしていってね ☆★☆ 感想は掲示板まで（掲示板は工事中） ☆★☆</p>
+  <p class="jp-welcome jp-only" aria-hidden="true">☆★☆ いらっしゃいませ ☆★☆ ゆっくりしていってね ☆★☆ 感想は掲示板まで ☆★☆ キリ番を踏んだら報告してね ☆★☆</p>
   <select class="tab-select" data-i18n-aria="tabs.aria" aria-label="Tools">
     <option value="ip" data-i18n="tab.ip">IP &amp; Connection</option>
+    <option value="privacy" data-i18n="tab.privacy">Privacy Check</option>
     <option value="browser" data-i18n="tab.browser">Browser</option>
     <option value="fp" data-i18n="tab.fp">Fingerprint</option>
     <option value="webrtc" data-i18n="tab.webrtc">WebRTC</option>
     <option value="dns" data-i18n="tab.dns">DNS Propagation</option>
     <option value="lookup" data-i18n="tab.lookup">IP / Domain Lookup</option>
+    <option value="mail" data-i18n="tab.mail">Mail Check</option>
     <option value="ports" data-i18n="tab.ports">Port Check</option>
     <option value="http" data-i18n="tab.http">HTTP Headers</option>
     <option value="certs" data-i18n="tab.certs">Certificates</option>
+    <option value="tools" data-i18n="tab.tools">Tools</option>
   </select>
 </header>
 <div class="kouji" aria-hidden="true"></div>
@@ -85,20 +88,24 @@ try { document.documentElement.dataset.theme = localStorage.getItem('netcheck-th
 <div class="side">
   <nav class="tabs" role="tablist" data-i18n-aria="tabs.aria" aria-label="Tools">
     <button role="tab" data-tab="ip" data-i18n="tab.ip">IP &amp; Connection</button>
+    <button role="tab" data-tab="privacy" data-i18n="tab.privacy">Privacy Check</button>
     <button role="tab" data-tab="browser" data-i18n="tab.browser">Browser</button>
     <button role="tab" data-tab="fp" data-i18n="tab.fp">Fingerprint</button>
     <button role="tab" data-tab="webrtc" data-i18n="tab.webrtc">WebRTC</button>
     <button role="tab" data-tab="dns" data-i18n="tab.dns">DNS Propagation</button>
     <button role="tab" data-tab="lookup" data-i18n="tab.lookup">IP / Domain Lookup</button>
+    <button role="tab" data-tab="mail" data-i18n="tab.mail">Mail Check</button>
     <button role="tab" data-tab="ports" data-i18n="tab.ports">Port Check</button>
     <button role="tab" data-tab="http" data-i18n="tab.http">HTTP Headers</button>
     <button role="tab" data-tab="certs" data-i18n="tab.certs">Certificates</button>
+    <button role="tab" data-tab="tools" data-i18n="tab.tools">Tools</button>
+    <button role="tab" data-tab="bbs" class="jp-only">掲示板</button>
   </nav>
   <div class="side-extra jp-only">
-    <p class="jp-box"><b>■ アクセス状況</b><br>本日 <span class="jp-num">0007</span>　昨日 <span class="jp-num">0012</span><br>閲覧中：あなただけ<br><small>（数字はでたらめです）</small></p>
-    <p class="jp-box"><b>■ 更新履歴</b><br><span class="jp-new">NEW!</span> 11/17 ポートチェック設置<br>11/16 サイト開設<br>掲示板は工事中です</p>
+    <p class="jp-box"><b>■ アクセス状況</b><br>本日 <span class="jp-num" id="jp-today">----</span>　昨日 <span class="jp-num" id="jp-yesterday">----</span><br>閲覧中：あなただけ</p>
+    <p class="jp-box"><b>■ 更新履歴</b><br><span class="jp-new">NEW!</span> 11/18 <a href="#bbs">掲示板</a>できました<br>11/17 ポートチェック設置<br>11/16 サイト開設</p>
     <button type="button" class="jp-rank" data-joke="ランキングには参加していません。押しても何も起きません">★ ランキング参加中 ★<br>１日１クリックお願いします</button>
-    <p class="jp-box">相互リンク募集中！<br>直リンクはご遠慮ください<br><span class="jp-new">キリ番</span> 報告は掲示板へ</p>
+    <p class="jp-box">相互リンク募集中！<br>直リンクはご遠慮ください<br><span class="jp-new">キリ番</span> 報告は<a href="#bbs">掲示板</a>へ</p>
   </div>
   <div class="side-extra ru2-only">
     <p class="ru2-box">☠ Сейчас на сайте: <b id="ru2-online">1337</b><br><small>(число выдумано)</small></p>
@@ -125,6 +132,13 @@ try { document.documentElement.dataset.theme = localStorage.getItem('netcheck-th
     <p class="lead" data-i18n="lead.ip"></p>
     <div id="ip-hero" class="hero"></div>
     <div id="ip-body"></div>
+  </section>
+
+  <section data-panel="privacy" hidden>
+    <h1 data-i18n="h.privacy">What This Site Can See About You</h1>
+    <p class="lead" data-i18n="lead.privacy"></p>
+    <p><button id="privacy-run" class="btn" data-i18n="webrtc.rerun">Run again</button></p>
+    <div id="privacy-body"></div>
   </section>
 
   <section data-panel="browser" hidden>
@@ -179,6 +193,17 @@ try { document.documentElement.dataset.theme = localStorage.getItem('netcheck-th
     <div id="lookup-body"></div>
   </section>
 
+  <section data-panel="mail" hidden>
+    <h1 data-i18n="h.mail">Mail Configuration Check</h1>
+    <p class="lead" data-i18n="lead.mail"></p>
+    <form id="mail-form" class="search-form">
+      <input id="mail-q" type="text" placeholder="example.com" autocomplete="off" autocapitalize="off" spellcheck="false" required data-i18n-aria="dns.nameAria" aria-label="Domain name">
+      <button class="btn primary" type="submit" data-i18n="go">Check</button>
+    </form>
+    <div id="mail-hero" class="hero"></div>
+    <div id="mail-body"></div>
+  </section>
+
   <section data-panel="ports" hidden>
     <h1 data-i18n="h.ports">Open Port Check</h1>
     <p class="lead" data-i18n="lead.ports"></p>
@@ -212,6 +237,77 @@ try { document.documentElement.dataset.theme = localStorage.getItem('netcheck-th
     <div id="certs-hero" class="hero"></div>
     <div id="certs-body"></div>
   </section>
+
+  <section data-panel="tools" hidden>
+    <h1 data-i18n="h.tools">Tools</h1>
+    <p class="lead" data-i18n="lead.tools"></p>
+    <div class="masonry">
+      <section class="sec">
+        <h2 data-i18n="sub.title">Subnet calculator</h2>
+        <form id="sub-form" class="search-form">
+          <input id="sub-q" type="text" placeholder="192.168.1.10/24" autocomplete="off" autocapitalize="off" spellcheck="false" required data-i18n-aria="sub.title" aria-label="Subnet calculator">
+          <button class="btn primary" type="submit" data-i18n="go">Check</button>
+        </form>
+        <div id="sub-body"></div>
+      </section>
+      <section class="sec">
+        <h2 data-i18n="mac.title">MAC address vendor lookup</h2>
+        <form id="mac-form" class="search-form">
+          <input id="mac-q" type="text" placeholder="00:1A:2B:3C:4D:5E" autocomplete="off" autocapitalize="off" spellcheck="false" required data-i18n-aria="mac.title" aria-label="MAC address vendor lookup">
+          <button class="btn primary" type="submit" data-i18n="go">Check</button>
+        </form>
+        <div id="mac-body"></div>
+      </section>
+      <section class="sec">
+        <h2 data-i18n="time.title">Response time</h2>
+        <p class="sub" style="margin:0 0 6px" data-i18n="time.lead"></p>
+        <form id="time-form" class="search-form">
+          <input id="time-q" type="text" placeholder="https://example.com" autocomplete="off" autocapitalize="off" spellcheck="false" required data-i18n-aria="http.aria" aria-label="URL">
+          <button class="btn primary" type="submit" data-i18n="go">Check</button>
+        </form>
+        <div id="time-body"></div>
+      </section>
+      <!-- ドイツ風テーマのときだけ出る -->
+      <section class="sec de-only">
+        <h2 data-i18n="conv.title">Converters</h2>
+        <textarea id="conv-in" class="conv-box" rows="4" spellcheck="false" data-i18n-ph="conv.input" data-i18n-aria="conv.input" placeholder="Input" aria-label="Input"></textarea>
+        <p class="conv-buttons">
+          <button type="button" class="btn small" data-conv="b64e" data-i18n="conv.b64e">Base64 encode</button>
+          <button type="button" class="btn small" data-conv="b64d" data-i18n="conv.b64d">Base64 decode</button>
+          <button type="button" class="btn small" data-conv="urle" data-i18n="conv.urle">URL encode</button>
+          <button type="button" class="btn small" data-conv="urld" data-i18n="conv.urld">URL decode</button>
+          <button type="button" class="btn small" data-conv="hash" data-i18n="conv.hash">SHA-256 hash</button>
+          <button type="button" class="btn small" data-conv="jwt" data-i18n="conv.jwt">Decode JWT</button>
+          <button type="button" class="btn small" data-conv="time" data-i18n="conv.time">Unix time ↔ date</button>
+          <button type="button" class="btn small" data-conv="idn" data-i18n="conv.idn">IDN ↔ Punycode</button>
+        </p>
+        <textarea id="conv-out" class="conv-box" rows="5" readonly spellcheck="false" data-i18n-ph="conv.output" data-i18n-aria="conv.output" placeholder="Output" aria-label="Output"></textarea>
+        <p class="sub" style="margin:6px 2px 0" data-i18n="conv.note"></p>
+      </section>
+      <!-- ロシア風（とても怪しい）テーマのときだけ出る -->
+      <section class="sec ru2-only">
+        <h2 data-i18n="qr.title">QR code generator</h2>
+        <form id="qr-form" class="search-form">
+          <input id="qr-q" type="text" data-i18n-ph="qr.ph" placeholder="Text or URL" autocomplete="off" spellcheck="false" required data-i18n-aria="qr.ph" aria-label="Text or URL">
+          <button class="btn primary" type="submit" data-i18n="qr.make">Create</button>
+        </form>
+        <div id="qr-body"></div>
+      </section>
+    </div>
+  </section>
+
+  <!-- 日本風テーマのときだけ使える掲示板。文言は日本語で固定 -->
+  <section data-panel="bbs" hidden>
+    <h1>掲示板</h1>
+    <p class="lead">足あとを残していってね！ 書き込みは誰でも読めます。URLは書けません。</p>
+    <form id="bbs-form" class="bbs-form">
+      <input id="bbs-name" type="text" maxlength="20" placeholder="おなまえ（省略可）" autocomplete="off" aria-label="おなまえ">
+      <input id="bbs-web" type="text" name="website" class="bbs-hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+      <textarea id="bbs-msg" maxlength="200" rows="3" placeholder="メッセージ（200文字まで）" required aria-label="メッセージ"></textarea>
+      <button class="btn primary" type="submit">書き込む</button>
+    </form>
+    <div id="bbs-body"></div>
+  </section>
 </main>
 </div>
 
@@ -224,6 +320,7 @@ try { document.documentElement.dataset.theme = localStorage.getItem('netcheck-th
   <p class="retro-only" data-t="bestViewed"></p>
   <p class="honest retro-only" data-i18n="foot.honestRetro"></p>
   <p class="honest mono-only" data-i18n="foot.honest"></p>
+  <p class="honest" data-i18n="foot.more"></p>
   <p data-t="copyright">© 2026 NetCheck</p>
 </footer>
 </div>

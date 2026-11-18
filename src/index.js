@@ -2,7 +2,7 @@
 // 静的ファイルは wrangler.jsonc の assets 設定で public/ から配信される。
 
 import { parseIpRdap, parseDomainRdap, rdapIpUrls } from '../public/rdap.js';
-import { normalizeCerts, certsUrl } from '../public/certs.js';
+import { normalizeCerts, certsUrl, normalizeSubdomains, subdomainsUrl } from '../public/certs.js';
 
 const TYPES = { A: 1, NS: 2, CNAME: 5, SOA: 6, PTR: 12, MX: 15, TXT: 16, AAAA: 28, SRV: 33, CAA: 257 };
 const TYPE_NAMES = Object.fromEntries(Object.entries(TYPES).map(([k, v]) => [v, k]));
@@ -80,6 +80,11 @@ export default {
       if (url.pathname === '/api/ports') return json(await portsCheck(url.searchParams));
       if (url.pathname === '/api/http') return json(await httpCheck(url.searchParams, url.hostname));
       if (url.pathname === '/api/certs') return json(await certsLookup(url.searchParams));
+      if (url.pathname === '/api/subdomains') return json(await subdomainsLookup(url.searchParams));
+      if (url.pathname === '/api/mail') return json(await mailCheck(url.searchParams));
+      if (url.pathname === '/api/asn') return json(await asnLookup(url.searchParams));
+      if (url.pathname === '/api/timing') return json(await timingCheck(url.searchParams, url.hostname));
+      if (url.pathname === '/api/counter' || url.pathname === '/api/bbs') return await board(request, env, url);
     } catch (e) {
       return json({ error: e.message || String(e) }, 400);
     }
@@ -93,13 +98,18 @@ const RATE_LIMITS = {
   '/api/ip': 'LIMIT_LOOKUP',
   '/api/domain': 'LIMIT_LOOKUP',
   '/api/certs': 'LIMIT_LOOKUP',
+  '/api/subdomains': 'LIMIT_LOOKUP',
+  '/api/mail': 'LIMIT_LOOKUP',
+  '/api/asn': 'LIMIT_LOOKUP',
   '/api/ports': 'LIMIT_PROBE',
   '/api/http': 'LIMIT_PROBE',
+  '/api/timing': 'LIMIT_PROBE',
+  'POST /api/bbs': 'LIMIT_POST', // 掲示板への書き込みだけを数える（読むのは数えない）
 };
 
 // 上限を超えていたら 429 の応答を返す。超えていなければ null
 async function rateLimit(request, env, pathname) {
-  const limiter = env?.[RATE_LIMITS[pathname]];
+  const limiter = env?.[RATE_LIMITS[`${request.method} ${pathname}`] || RATE_LIMITS[pathname]];
   if (!limiter) return null; // 対象外の経路か、制限の設定が無い環境
   const key = request.headers.get('cf-connecting-ip') || 'unknown';
   const { success } = await limiter.limit({ key });
@@ -763,7 +773,20 @@ async function httpCheck(params, selfHost) {
       break;
     }
   }
-  return { hops, tooMany };
+  // 最終応答が https で成功していれば、脆弱性の連絡先を書くファイル（security.txt）があるかも見る
+  let securityTxt = null;
+  const last = hops[hops.length - 1];
+  if (last && !last.error && last.status < 400 && url.protocol === 'https:') {
+    const target = `${url.origin}/.well-known/security.txt`;
+    try {
+      const res = await fetch(target, { headers: { 'user-agent': 'Mozilla/5.0 (compatible; NetCheck/1.0; HTTP header check)' }, signal: AbortSignal.timeout(5000) });
+      const text = res.ok ? (await res.text()).slice(0, 4096) : '';
+      securityTxt = { url: target, found: /^contact:/im.test(text) };
+    } catch {
+      securityTxt = { url: target, found: false };
+    }
+  }
+  return { hops, tooMany, securityTxt };
 }
 
 // ---------- /api/certs ----------
@@ -779,4 +802,225 @@ async function certsLookup(params) {
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return { query: name, ...normalizeCerts(await res.json()) };
+}
+
+// ---------- /api/subdomains ----------
+
+// 証明書の発行記録に出てくる名前から、サブドメインを洗い出す
+async function subdomainsLookup(params) {
+  const name = normalizeName(params.get('q') || '');
+  if (!name.includes('.')) throw new Error('need_dot');
+  const res = await fetch(subdomainsUrl(name), {
+    headers: { accept: 'application/json', 'user-agent': 'NetCheck/1.0 (certificate history lookup)' },
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return { query: name, ...normalizeSubdomains(await res.json(), name) };
+}
+
+// ---------- /api/mail ----------
+
+// DKIMの鍵は「セレクター名._domainkey.ドメイン」に置かれる。名前は自由なので、よく使われるものだけ試す
+const DKIM_SELECTORS = ['default', 'google', 'selector1', 'selector2', 'k1', 'k2', 's1', 's2', 'mail', 'dkim', 'smtp', 'mandrill', 'sig1', 'protonmail', 'fm1'];
+
+const txtValues = (res) => res.answers.filter((a) => a.type === 'TXT').map((a) => a.data.replace(/^"|"$/g, '').replace(/" "/g, ''));
+
+async function mailCheck(params) {
+  const domain = normalizeName(params.get('q') || '');
+  if (!domain.includes('.')) throw new Error('need_dot');
+  const txt = (name) => resolve(name, 'TXT').then(txtValues).catch(() => null);
+
+  const [mxRes, root, dmarcTxt, mtaSts, tlsRpt, bimi, ...dkimTxt] = await Promise.all([
+    resolve(domain, 'MX').catch(() => null),
+    txt(domain),
+    txt(`_dmarc.${domain}`),
+    txt(`_mta-sts.${domain}`),
+    txt(`_smtp._tls.${domain}`),
+    txt(`default._bimi.${domain}`),
+    ...DKIM_SELECTORS.map((s) => txt(`${s}._domainkey.${domain}`)),
+  ]);
+  if (!mxRes && !root) throw new Error('bad_response'); // DNSにまったく届かなかった
+
+  const mx = (mxRes?.answers || [])
+    .filter((a) => a.type === 'MX')
+    .map((a) => {
+      const [priority, host] = a.data.split(' ');
+      return { priority: Number(priority), host };
+    })
+    .sort((a, b) => a.priority - b.priority);
+
+  const spfRecords = (root || []).filter((v) => /^v=spf1(\s|$)/i.test(v));
+  const spfRecord = spfRecords[0] || null;
+  const spf = {
+    records: spfRecords,
+    // 末尾の all の付け方：- 拒否、~ 疑わしい扱い、? 判断しない、+ 誰でも許可
+    all: spfRecord ? /(?:^|\s)([-~?+]?)all(?:\s|$)/i.exec(spfRecord)?.[1] ?? null : null,
+    redirect: spfRecord ? /(?:^|\s)redirect=(\S+)/i.exec(spfRecord)?.[1] || null : null,
+    // このレコード自体が引き起こすDNS問い合わせの数（include 先の分は数えていない）
+    lookups: spfRecord ? (spfRecord.match(/(?:^|\s)[-~?+]?(?:include:|a(?=[:/\s]|$)|mx(?=[:/\s]|$)|exists:|ptr(?=[:\s]|$)|redirect=)/gi) || []).length : 0,
+  };
+  if (spf.all === '') spf.all = '+'; // 記号なしの all は + と同じ意味
+
+  const dmarcRecord = (dmarcTxt || []).find((v) => /^v=DMARC1/i.test(v)) || null;
+  const tag = (name) => (dmarcRecord ? new RegExp(`(?:^|;)\\s*${name}\\s*=\\s*([^;]+)`, 'i').exec(dmarcRecord)?.[1].trim() || null : null);
+  const dmarc = { record: dmarcRecord, policy: tag('p')?.toLowerCase() || null, subdomainPolicy: tag('sp')?.toLowerCase() || null, pct: tag('pct'), rua: tag('rua') };
+
+  const dkim = DKIM_SELECTORS.map((selector, i) => ({ selector, record: (dkimTxt[i] || []).find((v) => /(^|;)\s*p=/i.test(v) || /^v=DKIM1/i.test(v)) || null })).filter((d) => d.record);
+  const first = (list, re) => (list || []).find((v) => re.test(v)) || null;
+
+  return {
+    domain,
+    mx,
+    nullMx: mx.length === 1 && mx[0].host === '.', // 「メールを受け取らない」と宣言している
+    spf,
+    dmarc,
+    dkim: dkim.map((d) => ({ selector: d.selector, record: d.record.length > 160 ? `${d.record.slice(0, 160)}…` : d.record })),
+    dkimTried: DKIM_SELECTORS.length,
+    mtaSts: first(mtaSts, /^v=STSv1/i),
+    tlsRpt: first(tlsRpt, /^v=TLSRPTv1/i),
+    bimi: first(bimi, /^v=BIMI1/i),
+  };
+}
+
+// ---------- /api/asn ----------
+
+async function asnLookup(params) {
+  const m = /^(?:as)?\s*(\d{1,10})$/i.exec((params.get('q') || '').trim());
+  if (!m || Number(m[1]) < 1 || Number(m[1]) > 4294967295) throw new Error('bad_asn');
+  const asn = String(Number(m[1]));
+  const res = await resolve(`AS${asn}.asn.cymru.com`, 'TXT');
+  const record = res.answers.find((a) => a.type === 'TXT');
+  if (!record) return { asn, found: false };
+  const [, country, registry, allocated, name] = txtFields(record);
+  return { asn, found: true, name: name || null, country: country || null, registry: registry || null, allocated: allocated || null };
+}
+
+// ---------- /api/timing ----------
+
+// 同じURLに5回続けてアクセスし、応答までの時間を測る（転送は追わない。本文は読まない）
+async function timingCheck(params, selfHost) {
+  let raw = (params.get('url') || '').trim();
+  if (!raw) throw new Error('bad_url');
+  if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(raw)) raw = `https://${raw}`;
+  let url;
+  try {
+    url = new URL(raw);
+  } catch {
+    throw new Error('bad_url');
+  }
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') throw new Error('bad_url');
+  if (url.hostname === selfHost) throw new Error('self');
+  assertPublicHost(url.hostname);
+
+  const runs = [];
+  for (let i = 0; i < 5; i++) {
+    const started = Date.now();
+    try {
+      const res = await fetch(url, {
+        redirect: 'manual',
+        headers: { 'user-agent': 'Mozilla/5.0 (compatible; NetCheck/1.0; response time check)', accept: '*/*', 'cache-control': 'no-cache' },
+        signal: AbortSignal.timeout(8000),
+      });
+      res.body?.cancel().catch(() => {});
+      runs.push({ ms: Date.now() - started, status: res.status });
+    } catch (e) {
+      const timeout = e.name === 'TimeoutError' || e.name === 'AbortError';
+      runs.push({ ms: Date.now() - started, error: timeout ? 'timeout' : e.message || String(e) });
+    }
+  }
+  return { url: url.href, runs };
+}
+
+// ---------- /api/counter と /api/bbs（訪問数と掲示板） ----------
+// データは Durable Object「Board」1つに持つ（Cloudflare の無料枠で使える、小さな専用データベース）。
+// 保存するのは、訪問数（数字だけ）と、掲示板の書き込み（名前・本文・日時）。IPアドレスは保存しない。
+
+const BBS_MAX_NAME = 20;
+const BBS_MAX_MESSAGE = 200;
+
+async function board(request, env, url) {
+  if (!env?.BOARD) return json({ error: 'no_board' }, 503);
+  const stub = env.BOARD.get(env.BOARD.idFromName('main'));
+  const call = (path, init) => stub.fetch(`https://board${path}`, init);
+  const method = request.method;
+
+  if (url.pathname === '/api/counter') {
+    // POST は1回の訪問として数える。GET は数字を読むだけ
+    return call(method === 'POST' ? '/hit' : '/stats', { method: method === 'POST' ? 'POST' : 'GET' });
+  }
+
+  if (method === 'GET') return call('/posts');
+
+  if (method === 'POST') {
+    let body;
+    try {
+      body = JSON.parse((await request.text()).slice(0, 4000));
+    } catch {
+      return json({ error: 'bbs_bad' }, 400);
+    }
+    // 制御文字を落として前後の空白を取る
+    const clean = (v, max) => String(v ?? '').replace(/[\u0000-\u0008\u000b-\u001f\u007f]/g, '').trim().slice(0, max);
+    const name = clean(body.name, BBS_MAX_NAME) || '名無しさん';
+    const message = clean(body.message, BBS_MAX_MESSAGE);
+    if (body.website) return json({ ok: true }); // 人には見えない入力欄。埋まっていたら自動投稿とみなし、成功したふりだけする
+    if (!message) return json({ error: 'bbs_empty' }, 400);
+    if (/https?:\/\/|www\./i.test(`${name} ${message}`)) return json({ error: 'bbs_no_links' }, 400); // 宣伝の書き込み対策
+    return call('/posts', { method: 'POST', body: JSON.stringify({ name, message }) });
+  }
+
+  if (method === 'DELETE') {
+    // 管理用：シークレット ADMIN_KEY を設定したときだけ使える
+    if (!env.ADMIN_KEY || url.searchParams.get('key') !== env.ADMIN_KEY) return json({ error: 'forbidden' }, 403);
+    return call(`/posts?id=${encodeURIComponent(url.searchParams.get('id') || '')}`, { method: 'DELETE' });
+  }
+  return json({ error: 'method' }, 405);
+}
+
+export class Board {
+  constructor(state) {
+    this.sql = state.storage.sql;
+    this.sql.exec('CREATE TABLE IF NOT EXISTS counts (k TEXT PRIMARY KEY, v INTEGER NOT NULL)');
+    this.sql.exec('CREATE TABLE IF NOT EXISTS posts (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, message TEXT NOT NULL, created INTEGER NOT NULL)');
+  }
+
+  // 日本時間の日付（YYYY-MM-DD）。「本日」「昨日」の区切りに使う
+  day(offsetDays = 0) {
+    return new Date(Date.now() + 9 * 3600 * 1000 - offsetDays * 86400 * 1000).toISOString().slice(0, 10);
+  }
+
+  count(key) {
+    return this.sql.exec('SELECT v FROM counts WHERE k = ?', key).toArray()[0]?.v || 0;
+  }
+
+  stats() {
+    return { total: this.count('total'), today: this.count(`day:${this.day()}`), yesterday: this.count(`day:${this.day(1)}`) };
+  }
+
+  posts() {
+    return this.sql.exec('SELECT id, name, message, created FROM posts ORDER BY id DESC LIMIT 50').toArray();
+  }
+
+  async fetch(request) {
+    const url = new URL(request.url);
+    const reply = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
+
+    if (url.pathname === '/hit') {
+      for (const key of ['total', `day:${this.day()}`]) this.sql.exec('INSERT INTO counts (k, v) VALUES (?, 1) ON CONFLICT(k) DO UPDATE SET v = v + 1', key);
+      this.sql.exec("DELETE FROM counts WHERE k LIKE 'day:%' AND k < ?", `day:${this.day(7)}`); // 古い日別の数は消す
+      return reply(this.stats());
+    }
+    if (url.pathname === '/stats') return reply(this.stats());
+
+    if (url.pathname === '/posts') {
+      if (request.method === 'POST') {
+        const { name, message } = await request.json();
+        this.sql.exec('INSERT INTO posts (name, message, created) VALUES (?, ?, ?)', name, message, Date.now());
+        this.sql.exec('DELETE FROM posts WHERE id NOT IN (SELECT id FROM posts ORDER BY id DESC LIMIT 200)'); // 新しい200件だけ残す
+      } else if (request.method === 'DELETE') {
+        this.sql.exec('DELETE FROM posts WHERE id = ?', Number(url.searchParams.get('id')));
+      }
+      return reply({ posts: this.posts() });
+    }
+    return reply({ error: 'not_found' }, 404);
+  }
 }
