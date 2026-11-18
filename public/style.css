@@ -1300,10 +1300,9 @@ pre.raw { margin: 0; padding: 8px 10px; font: 13px/1.5 var(--mono); white-space:
 /* ---------- ツール ---------- */
 .conv-box { display: block; width: 100%; padding: 6px 8px; resize: vertical; color: #000000; background: #ffffff; border: var(--input-border); border-radius: calc(var(--radius) * .6); font: 13px/1.5 var(--mono); overflow-wrap: anywhere; }
 .conv-buttons { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0; }
-.de-only { display: none; }
-:root[data-theme="de"] .de-only { display: block; }
 .qr-out { display: block; max-width: 100%; height: auto; margin: 4px 0 8px; background: #ffffff; border: 6px solid #ffffff; image-rendering: pixelated; }
 :root[data-theme="ru2"] .conv-box { background: #000000; color: #39ff14; }
+:root[data-theme="gb"] .conv-box { background: #000000; color: #ffffff; }
 
 /* ---------- 掲示板（日本風のみ） ---------- */
 .bbs-form { display: grid; gap: 6px; max-width: 520px; margin-bottom: 14px; padding: 8px; background: #ffffcc; border: 2px inset #ffffff; }

@@ -1635,7 +1635,7 @@ async function timingRun(url) {
   ];
 }
 
-// --- 変換ツール（ドイツ風テーマのみ） ---
+// --- 変換ツール ---
 
 // Punycode（xn-- で始まる表記）を元の文字に戻す。ブラウザに標準の機能がないので RFC 3492 の手順をそのまま書いている
 function punycodeDecode(input) {
@@ -1704,7 +1704,7 @@ const CONVERTERS = {
   },
 };
 
-// --- QRコード（ロシア風・とても怪しいテーマのみ） ---
+// --- QRコード ---
 let qrPromise;
 function loadQr() {
   qrPromise ??= new Promise((resolve, reject) => {

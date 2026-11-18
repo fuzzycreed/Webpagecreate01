@@ -267,8 +267,7 @@ try { document.documentElement.dataset.theme = localStorage.getItem('netcheck-th
         </form>
         <div id="time-body"></div>
       </section>
-      <!-- ドイツ風テーマのときだけ出る -->
-      <section class="sec de-only">
+      <section class="sec">
         <h2 data-i18n="conv.title">Converters</h2>
         <textarea id="conv-in" class="conv-box" rows="4" spellcheck="false" data-i18n-ph="conv.input" data-i18n-aria="conv.input" placeholder="Input" aria-label="Input"></textarea>
         <p class="conv-buttons">
@@ -284,8 +283,7 @@ try { document.documentElement.dataset.theme = localStorage.getItem('netcheck-th
         <textarea id="conv-out" class="conv-box" rows="5" readonly spellcheck="false" data-i18n-ph="conv.output" data-i18n-aria="conv.output" placeholder="Output" aria-label="Output"></textarea>
         <p class="sub" style="margin:6px 2px 0" data-i18n="conv.note"></p>
       </section>
-      <!-- ロシア風（とても怪しい）テーマのときだけ出る -->
-      <section class="sec ru2-only">
+      <section class="sec">
         <h2 data-i18n="qr.title">QR code generator</h2>
         <form id="qr-form" class="search-form">
           <input id="qr-q" type="text" data-i18n-ph="qr.ph" placeholder="Text or URL" autocomplete="off" spellcheck="false" required data-i18n-aria="qr.ph" aria-label="Text or URL">
