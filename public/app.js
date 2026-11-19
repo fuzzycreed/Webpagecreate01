@@ -2,7 +2,7 @@
 // 表示言語は英語が標準で、ヘッダー右上の Lang プルダウンで切り替える（I18N に言語を足せば増やせる）。
 
 import { I18N } from './i18n.js';
-import { parseIpRdap, parseDomainRdap, rdapIpUrls } from './rdap.js';
+import { parseIpRdap, parseDomainRdap, rdapIpUrls, relatedRdapUrl, mergeDomainRdap } from './rdap.js';
 import { normalizeCerts, certsUrl, normalizeSubdomains, subdomainsUrl } from './certs.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -952,18 +952,32 @@ function queryDns(qs) {
 const looksLikeIp = (q) => /^\[?[0-9a-f:.]+\]?$/i.test(q) && (q.includes(':') || /^\d+\.\d+\.\d+\.\d+$/.test(q));
 const ROLES = ['registrant', 'administrative', 'technical', 'abuse', 'registrar', 'billing', 'noc', 'reseller', 'sponsor'];
 
+// 個人情報保護のために伏せられている項目は、こういう決まり文句が値として入ってくる
+const REDACTED = /^\s*(redacted( for privacy)?|data redacted|not disclosed|gdpr (masked|redacted)|statutory masking enabled|data protected(, not disclosed)?|withheld for privacy( purposes)?|registration private)\s*$/i;
+const hidden = () => badge('info', t('lk.redacted'));
+// 値をそのまま出すか、伏せられていれば「非公開」の印にする
+const shown = (v) => (v && REDACTED.test(v) ? hidden() : v);
+
 function entitiesTable(entities) {
+  // 登録者 → 管理 → 技術 → …の順に並べる
+  const rank = (e) => Math.min(...e.roles.map((r) => (ROLES.indexOf(r) < 0 ? 99 : ROLES.indexOf(r))), 99);
   const rows = entities
-    .filter((e) => e.name || e.org || e.email || e.tel || e.address)
-    .map((e) =>
-      el(
+    .filter((e) => e.name || e.org || e.email || e.tel || e.address || e.url)
+    .sort((a, b) => rank(a) - rank(b))
+    .map((e) => {
+      // 住所は「REDACTED, REDACTED, Tokyo, JP」のように一部だけ伏せられていることがあるので、残っている部分だけ出す
+      const parts = (e.address || '').split(',').map((x) => x.trim()).filter(Boolean);
+      const visible = parts.filter((x) => !REDACTED.test(x));
+      const address = !parts.length ? null : visible.length ? visible.join(', ') : hidden();
+      const form = e.url ? el('a', { href: e.url, target: '_blank', rel: 'noopener noreferrer' }, t('lk.contactForm')) : null;
+      return el(
         'tr',
         {},
         el('td', {}, e.roles.map((r) => (ROLES.includes(r) ? t(`role.${r}`) : r)).join(t('listSep')) || '—'),
-        el('td', {}, e.name || e.org || '—', e.name && e.org && e.org !== e.name ? el('div', { class: 'sub' }, e.org) : null, e.handle ? el('div', { class: 'sub' }, e.handle) : null),
-        el('td', { class: 'ans' }, [e.email, e.tel, e.address].filter(Boolean).map((v) => el('div', {}, v))),
-      ),
-    );
+        el('td', {}, shown(e.name || e.org) || '—', e.name && e.org && e.org !== e.name ? el('div', { class: 'sub' }, shown(e.org)) : null, e.handle && !REDACTED.test(e.handle) ? el('div', { class: 'sub' }, e.handle) : null),
+        el('td', { class: 'ans' }, [shown(e.email), shown(e.tel), address, form].filter(Boolean).map((v) => el('div', {}, v))),
+      );
+    });
   if (!rows.length) return el('p', { class: 'muted' }, t('lk.noContacts'));
   return listTable([t('lk.thRole'), t('lk.thName'), t('lk.thContact')], rows);
 }
@@ -1060,6 +1074,13 @@ async function enrichDomain(d) {
           const r = await fetchJson(`https://rdap.org/domain/${domain}`);
           if (!r) continue;
           d.rdap = parseDomainRdap(r);
+          const related = relatedRdapUrl(r);
+          if (related) {
+            try {
+              const more = await fetchJson(related);
+              if (more) d.rdap = mergeDomainRdap(d.rdap, parseDomainRdap(more));
+            } catch {}
+          }
           d.registered = domain;
           d.whois = null;
           break;
@@ -1254,7 +1275,7 @@ function renderDomain(d, hero, body) {
               ]),
             )
           : []),
-        ...(r ? section(t('lk.secContacts'), entitiesTable(r.entities)) : []),
+        ...(r ? section(t('lk.secContacts'), entitiesTable(r.entities), el('p', { class: 'sub', style: 'margin:6px 2px 0' }, t('dm.contactNote'))) : []),
         ...(d.whois ? section(`WHOIS${t('paren', d.whois.server)}`, el('div', { class: 'card' }, el('pre', { class: 'raw' }, d.whois.text))) : []),
       ],
       section(

@@ -6,12 +6,13 @@ const events = (obj) => Object.fromEntries((obj.events || []).map((e) => [e.even
 // 連絡先（entities）は入れ子になっているので、平らな一覧にする
 function entities(list, depth = 0, out = []) {
   for (const e of list || []) {
-    const item = { roles: e.roles || [], handle: e.handle || null, name: null, org: null, email: null, tel: null, address: null };
+    const item = { roles: e.roles || [], handle: e.handle || null, name: null, org: null, email: null, tel: null, address: null, url: null };
     for (const [key, vparams, , value] of e.vcardArray?.[1] || []) {
       if (key === 'fn') item.name = value;
       else if (key === 'org') item.org = Array.isArray(value) ? value.join(' ') : value;
       else if (key === 'email') item.email ??= value;
       else if (key === 'tel') item.tel ??= String(value).replace(/^tel:/, '');
+      else if (key === 'contact-uri' || key === 'url') item.url ??= /^(https?:|mailto:)/i.test(String(value)) ? String(value) : null; // 連絡用フォームなど
       else if (key === 'adr') item.address = (vparams?.label || (Array.isArray(value) ? value.flat().filter(Boolean).join(', ') : '')).replace(/\s*\n\s*/g, ', ') || null;
     }
     const iana = (e.publicIds || []).find((p) => /iana/i.test(p.type || ''));
@@ -69,4 +70,24 @@ export function rdapIpUrls(ip, registry) {
   const direct = RIR_RDAP[String(registry || '').toLowerCase()];
   if (direct) urls.push(direct + ip);
   return urls;
+}
+
+// ---------- レジストラ側の登録情報 ----------
+// .com や .net などでは、レジストリ（ドメイン全体の管理元）の応答には登録者や技術担当の情報が入っておらず、
+// レジストラ（販売業者）のRDAPへのリンク（rel="related"）だけが書かれている。そのリンク先を返す
+export function relatedRdapUrl(r) {
+  const link = (r.links || []).find((l) => l.rel === 'related' && /rdap|json/i.test(l.type || 'rdap') && /^https:\/\//i.test(l.href || ''));
+  return link ? link.href : null;
+}
+
+// レジストリの情報（base）に、レジストラの情報（extra）を重ねる。連絡先はレジストラ側のほうが詳しい
+export function mergeDomainRdap(base, extra) {
+  const same = (a, b) => a.roles.join() === b.roles.join() && a.name === b.name && a.email === b.email;
+  return {
+    ...base,
+    status: [...new Set([...base.status, ...extra.status])],
+    events: { ...extra.events, ...base.events },
+    registrar: base.registrar || extra.registrar,
+    entities: [...base.entities, ...extra.entities.filter((e) => !base.entities.some((b) => same(b, e)))],
+  };
 }

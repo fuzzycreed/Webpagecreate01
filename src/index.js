@@ -1,7 +1,7 @@
 // NetCheck Worker: /api/info（接続情報）、/api/dns（DNS伝播）、/api/ip（IP検索）、/api/domain（ドメイン検索）
 // 静的ファイルは wrangler.jsonc の assets 設定で public/ から配信される。
 
-import { parseIpRdap, parseDomainRdap, rdapIpUrls } from '../public/rdap.js';
+import { parseIpRdap, parseDomainRdap, rdapIpUrls, relatedRdapUrl, mergeDomainRdap } from '../public/rdap.js';
 import { normalizeCerts, certsUrl, normalizeSubdomains, subdomainsUrl } from '../public/certs.js';
 
 const TYPES = { A: 1, NS: 2, CNAME: 5, SOA: 6, PTR: 12, MX: 15, TXT: 16, AAAA: 28, SRV: 33, CAA: 257 };
@@ -602,6 +602,15 @@ async function registrationLookup(candidates) {
       if (!r) continue;
       out.registered = domain;
       out.rdap = parseDomainRdap(r);
+      // 登録者・技術担当などの連絡先は、レジストラ（販売業者）側にしか無いことが多いので、リンクがあればそちらも読む
+      const related = relatedRdapUrl(r);
+      if (related) {
+        try {
+          assertPublicHost(new URL(related).hostname);
+          const more = await rdapGet(related);
+          if (more) out.rdap = mergeDomainRdap(out.rdap, parseDomainRdap(more));
+        } catch {} // 取れなくても、レジストリの情報だけで結果を返す
+      }
       return out;
     }
   } catch (e) {

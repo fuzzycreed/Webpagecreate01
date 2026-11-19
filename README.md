@@ -89,6 +89,10 @@ Workers は他の利用者と出口のIPを共有しているため、無料の�
 
 RDAPの応答を整える処理は `public/rdap.js` にあり、サーバーとブラウザの両方が読み込む。
 
+ドメインの連絡先（登録者・管理担当・技術担当）は、レジストリの応答にある `rel="related"` のリンクをたどって、
+レジストラ側のRDAPからも取得して重ねている（`relatedRdapUrl` / `mergeDomainRdap`）。
+「REDACTED FOR PRIVACY」などの決まり文句が入っている項目は、画面では「非公開」と表示する（`public/app.js` の `REDACTED`）。
+
 ## 外から調べる機能の制限
 
 ポートチェックとHTTPヘッダー確認は、踏み台にされにくいよう次の制限を入れている（`src/index.js` の `assertPublicHost` ほか）。
