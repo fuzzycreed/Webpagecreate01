@@ -1673,3 +1673,57 @@ main.doc ul { padding-left: 1.4em; }
 :root.period-rtl .badge:not(.rtl), :root.period-rtl a:not(.rtl), :root.period-rtl .stat .v:not(.rtl), :root.period-rtl .stat .s:not(.rtl) { direction: ltr; unicode-bidi: isolate; }
 :root.period-rtl td, :root.period-rtl th, :root.period-rtl .tabs button, :root.period-rtl .tab-head, :root.period-rtl .stat { text-align: right; }
 :root.period-rtl .lang-pick { right: auto; left: 8px; }
+
+/* ---------- 大日本帝国風 × 日本語：縦書き ----------
+   目次（.side）、本文（main）、末尾（.foot）を縦書きにし、段は右から左へ進む。はみ出す分は横に送って読む。
+   題字・告知の帯は右から左の横書きのまま。入力欄・地図・世界地図・登録照會の生テキストは横書きの「島」として残す。
+   縦書きの中では文字の並びを逆にする必要がないので、.rtl の逆転を打ち消す（横書きの島の中だけ逆転を残す）。 */
+:root.period-vert .layout { display: block; direction: ltr; }
+/* 縦書きの箱は、何もしないと中身の長さだけ横に伸びて頁ごとはみ出す。頁の幅に収め、はみ出しは箱の中で横に送る */
+:root.period-vert :is(main, .side, .foot) { box-sizing: border-box; width: 100%; max-width: 100%; }
+:root.period-vert :is(main, .side, .foot) .rtl, :root.period-vert :is(.side, .foot).rtl { direction: ltr; unicode-bidi: normal; }
+:root.period-vert main :is(.search-form, .dns-form, .ports-form, .speed-form, .bbs-form) .rtl { direction: rtl; unicode-bidi: bidi-override; }
+:root.period-vert :is(main, .side, .foot) :is(td, th, .stat, .tabs button, .tab-head) { text-align: start; }
+
+/* 目次：タブが縦長の短冊として右から左に並ぶ */
+:root.period-vert .side { writing-mode: vertical-rl; height: 214px; overflow-x: auto; overflow-y: hidden; border-right: 0; border-bottom: var(--tabs-rule); }
+:root.period-vert .tabs { display: flex; flex-direction: column; flex-wrap: nowrap; align-items: stretch; justify-content: flex-start; gap: 6px; padding: 12px 10px; border: 0; }
+:root.period-vert .tabs button { padding: 10px 6px; letter-spacing: 3px; font-size: 15px; }
+:root.period-vert .tab-head { flex-basis: auto; margin: 0 14px 0 2px; letter-spacing: 3px; }
+:root.period-vert .tab-head:first-child { margin-right: 0; }
+/* 携帯の幅では目次の短冊を出さず、上の選択欄だけにする */
+@media (max-width: 640px) { :root.period-vert .side { display: none; } }
+
+/* 本文 */
+:root.period-vert main { writing-mode: vertical-rl; direction: ltr; height: clamp(420px, calc(100vh - 36px), 820px); min-height: 0; overflow-x: auto; overflow-y: hidden; padding: 20px 24px; line-height: 1.8; }
+:root.period-vert main :is(h1, h2, p, .lead, .note, .card, .hero, .history, .copybar, .legend, .map, .worldmap, .cols, .masonry) { margin: 0 0 0 14px; }
+:root.period-vert main p[style] { margin: 0 0 0 10px !important; }
+:root.period-vert main .sec { padding: 0 20px 0 0; }
+:root.period-vert main h1 { border-bottom: 0; border-left: var(--h1-rule); padding: 0 0 0 8px; letter-spacing: 3px; }
+:root.period-vert main h2 { letter-spacing: 1px; }
+:root.period-vert main :is(.lead, .honest) { max-width: none; }
+:root.period-vert main :is(.cols, .masonry, .hero) { display: block; columns: auto; }
+:root.period-vert main .stat { margin: 0 0 0 8px; }
+:root[data-theme="ijp"].period-vert main .stat { border-top-width: 1px; border-right: 3px solid #a52a1e; }
+:root.period-vert main table { width: auto; }
+:root.period-vert main table.kv th { width: auto; min-width: 0; }
+:root.period-vert main .card { overflow: visible; inline-size: fit-content; max-inline-size: 100%; }
+:root.period-vert main .copybar { justify-content: flex-start; }
+:root.period-vert .tcy { text-combine-upright: all; }
+:root.period-vert main .chips.scroll { max-height: none; max-width: 480px; overflow-x: auto; }
+
+/* 横書きのまま残す「島」：入力欄の並び、地図、世界地図、生テキスト、変換道具の欄、二次元符號 */
+:root.period-vert main :is(.search-form, .dns-form, .ports-form, .speed-form, .bbs-form, .map, .worldmap, pre.raw, .conv-box, .qr-out) { writing-mode: horizontal-tb; }
+:root.period-vert main :is(.search-form, .dns-form, .ports-form) { width: 440px; direction: rtl; margin: 0 0 0 16px; }
+:root.period-vert main :is(.speed-form, .bbs-form) { width: 380px; direction: rtl; margin: 0 0 0 16px; }
+:root.period-vert main .map { width: 520px; height: 360px; }
+:root.period-vert main .worldmap { width: 720px; }
+:root.period-vert main pre.raw { width: 560px; max-height: 560px; overflow: auto; }
+:root.period-vert main .conv-box { width: 360px; margin: 0 0 0 10px; }
+:root.period-vert main .conv-buttons { margin: 0 0 0 10px; }
+
+/* 末尾 */
+:root.period-vert .foot { writing-mode: vertical-rl; direction: ltr; height: 320px; overflow-x: auto; overflow-y: hidden; text-align: start; padding: 16px 20px; }
+:root.period-vert .foot p { margin: 0 0 0 12px; }
+:root.period-vert .foot .honest { max-width: none; margin: 0 0 0 12px !important; }
+:root.period-vert .foot :is(.counter, .banner) { writing-mode: horizontal-tb; }

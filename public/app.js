@@ -34,7 +34,8 @@ if (!I18N[lang]) lang = 'en';
 const dict = lang === 'ja' && document.documentElement.dataset.theme === 'ijp' && I18N['ja-ijp'] ? 'ja-ijp' : lang;
 // その辞書のときは、画面の文字を戦前の横書きにならって右から左へ表示する（periodDirection を参照）
 const periodRtl = dict === 'ja-ijp';
-if (periodRtl) document.documentElement.classList.add('period-rtl');
+// さらに本文は縦書きにする（period-vert。見出しの帯や入力欄などの一部は横書きのまま）
+if (periodRtl) document.documentElement.classList.add('period-rtl', 'period-vert');
 // 右から左へ表示するときに、英数字（データ）だけは左から右のまま読めるよう、双方向テキストの分離記号で囲む
 const isoAscii = (s) => (periodRtl && typeof s === 'string' ? s.replace(/[!-~]+(?: [!-~]+)*/g, (m) => `\u2066${m}\u2069`) : s);
 
@@ -2541,6 +2542,36 @@ function periodDirection() {
     node.classList.toggle('rtl', CJK.test(text) && !/[A-Za-z0-9]/.test(text));
   }
 }
+// 縦書きのときは、和文の中の1〜2桁の数字を縦中横（数字を立てて1字分に収める）にする。
+// 3桁以上の数字や、IPアドレス・時刻・英字混じりの番号などは横倒しのまま
+const TCY_SKIP = `${PERIOD_SKIP}, .tcy, .search-form, .dns-form, .ports-form, .speed-form, .bbs-form, .map, .conv-box, .qr-out`;
+const TCY_RE = /(?<![0-9A-Za-z.,:/_\-])[0-9]{1,2}(?![0-9A-Za-z.,:/_%\-])/g;
+function periodTcy() {
+  for (const root of document.querySelectorAll('main, .side, .foot')) {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    const hits = [];
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+      if (n.parentElement.closest(TCY_SKIP)) continue;
+      // 横書き（右から左）のために入れた分離記号は、縦書きでは要らないうえ縦中横の位置を狂わせるので外す
+      if (/[\u2066-\u2069]/.test(n.data)) n.data = n.data.replace(/[\u2066-\u2069]/g, '');
+      TCY_RE.lastIndex = 0;
+      if (TCY_RE.test(n.data) && CJK.test(n.parentElement.textContent)) hits.push(n);
+    }
+    for (const n of hits) {
+      const frag = document.createDocumentFragment();
+      let last = 0;
+      n.data.replace(TCY_RE, (m, at) => {
+        const span = document.createElement('span');
+        span.className = 'tcy';
+        span.textContent = m;
+        frag.append(n.data.slice(last, at), span);
+        last = at + m.length;
+      });
+      frag.append(n.data.slice(last));
+      n.replaceWith(frag);
+    }
+  }
+}
 if (periodRtl) {
   let pending = false;
   const schedule = () => {
@@ -2549,10 +2580,31 @@ if (periodRtl) {
     requestAnimationFrame(() => {
       pending = false;
       periodDirection();
+      periodTcy();
     });
   };
   new MutationObserver(schedule).observe(document.querySelector('.page'), { childList: true, subtree: true, characterData: true });
   schedule();
+  // 縦書きの本文は右から左へ横に進むので、ホイールの上下を左右の移動に読み替える
+  // ただし、箱が画面に収まりきっていないあいだと、読み終わり／読み始めに着いたあとは、頁そのものを上下に動かす
+  for (const box of [document.querySelector('.side'), document.querySelector('main'), document.querySelector('.foot')]) {
+    box.addEventListener(
+      'wheel',
+      (e) => {
+        if (e.shiftKey || Math.abs(e.deltaX) > Math.abs(e.deltaY) || box.scrollWidth <= box.clientWidth) return;
+        if (e.target.closest('.leaflet-container, textarea, select, pre')) return;
+        const rect = box.getBoundingClientRect();
+        const down = e.deltaY > 0;
+        if (down ? rect.bottom > innerHeight + 1 : rect.top < -1) return;
+        // vertical-rl では書き出し（右端）が scrollLeft 0 で、読み進めるほど負になる
+        const end = box.clientWidth - box.scrollWidth;
+        if (down ? box.scrollLeft <= end + 1 : box.scrollLeft >= -1) return;
+        box.scrollLeft -= e.deltaMode === 1 ? e.deltaY * 32 : e.deltaY;
+        e.preventDefault();
+      },
+      { passive: false },
+    );
+  }
 }
 
 // ---------- タブ切り替え ----------
@@ -2609,6 +2661,7 @@ function activate() {
   for (const panel of document.querySelectorAll('[data-panel]')) panel.hidden = panel.dataset.panel !== tab;
   for (const btn of document.querySelectorAll('.tabs [data-tab]')) btn.setAttribute('aria-selected', String(btn.dataset.tab === tab));
   $('.tab-select').value = tab;
+  if (periodRtl) $('main').scrollLeft = 0;
   if (!started.has(tab)) {
     started.add(tab); // 各タブの診断は初めて開いたときに一度だけ走らせる
     INIT[tab]();
@@ -2618,6 +2671,7 @@ function activate() {
     QUERY[tab](new URLSearchParams(query));
     remember(tab, historyLabel(new URLSearchParams(query)), query);
     scrollTo(0, 0);
+    if (periodRtl) $('main').scrollLeft = 0; // 縦書きの本文を、書き出し（右端）に戻す
   }
 }
 
