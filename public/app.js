@@ -2155,6 +2155,19 @@ const THEMES = {
     bestViewed: 'Рекомендуется экран 800×600 и выше (шутка)',
     copyright: '© 2026 NetCheck. Наркомат диагностики (шутка).',
   },
+  // ソ連風（スターリン時代）：社会主義リアリズムの標語と、お役所の大げさな言い回し（どれも冗談と明記）
+  su3: {
+    marquee: '★ СЛАВА СТАХАНОВЦАМ СЕТЕВОЙ ДИАГНОСТИКИ! ★ ПЯТИЛЕТНИЙ ПЛАН ПРОВЕРКИ DNS — ВЫПОЛНИМ ДОСРОЧНО! ★ ЖИТЬ СТАЛО ЛУЧШЕ, ПИНГ СТАЛ ВЕСЕЛЕЕ! ★ БУДЬТЕ БДИТЕЛЬНЫ: ВАШ IP-АДРЕС ВИДЕН! ★',
+    tagline: 'Всесоюзное управление сетевой диагностики',
+    peekLabel: 'БДИТЕЛЬНОСТЬ!',
+    peek: (ip, detail) => `Товарищ, ваш IP-адрес ${ip}${detail ? ` (${detail})` : ''} известен этому сайту. Сведения учтены (шутка).`,
+    counterPre: 'Вы —',
+    counterPost: 'посетитель. Норма перевыполнена втрое!',
+    kiriban: '★ Юбилейный посетитель! Вы награждаетесь почётной грамотой (шутка) ★',
+    linkFree: 'Ссылка на наш сайт — дело чести, славы и доблести!',
+    bestViewed: 'Рекомендуется экран 800×600 и настольная лампа с зелёным абажуром (шутка)',
+    copyright: '© 2026 NetCheck. Утверждено и одобрено (шутка).',
+  },
   // とても堅いイングランドのサイト風：白黒、セリフ体、動きなし、回りくどい公用文
   gb2: {
     marquee: 'NOTICE TO VISITORS — Your Internet Protocol address, browser particulars, screen dimensions and installed typefaces are disclosed to this page in the ordinary course of its operation. Visitors are respectfully reminded to conduct themselves accordingly.',

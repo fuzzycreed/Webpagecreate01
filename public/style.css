@@ -1164,6 +1164,119 @@
   :root[data-theme="ijp"] .tagline { letter-spacing: 4px; }
 }
 
+/* ---------- ソ連風（スターリン時代・1930〜50年代）：社会主義リアリズムとスターリン様式
+   深紅のビロードの幕（ひだと金の点）、象牙色の公文書の紙、金の二重枠、題字の後ろに放射状の光、金の玉縁の帯。
+   重いセリフ体の大文字。点滅はしない（荘重に）。国章・鎌と槌・肖像は使わない ---------- */
+:root[data-theme="su3"] {
+  --font: "PT Serif", "Times New Roman", Georgia, "Noto Serif", serif;
+  --mono: "PT Mono", "Courier New", Courier, monospace;
+  --bg-color: #4a0a0c;
+  --bg-image: radial-gradient(circle, rgba(212, 175, 55, .35) 0 1.5px, transparent 2px), repeating-linear-gradient(90deg, rgba(0, 0, 0, .22) 0, rgba(255, 255, 255, .05) 22px, rgba(0, 0, 0, .22) 44px), linear-gradient(90deg, rgba(0, 0, 0, .4), transparent 18% 82%, rgba(0, 0, 0, .4));
+  --bg-size: 44px 44px, auto, auto;
+  --paper: #f6edd5;
+  --text: #2a1a12;
+  --muted: #6b5443;
+  --line: #b8954a;
+  --row-a: #efe3c4;
+  --row-b: #f8f0db;
+  --card-bg: #f8f0db;
+  --page-border: 6px double #c9a227;
+  --page-shadow: 0 0 0 3px #5c0d10, 0 10px 30px rgba(0, 0, 0, .6);
+  --radius: 0;
+  --pill: 0;
+  /* 題字の下から差す光 */
+  --title-bg: radial-gradient(ellipse at 50% 125%, rgba(255, 214, 102, .5), transparent 62%), repeating-conic-gradient(from -90deg at 50% 130%, #9b1218 0 5deg, #7a0b10 5deg 10deg);
+  --brand-font: 700 50px/1.05 "PT Serif", "Times New Roman", Georgia, serif;
+  --brand-style: normal;
+  --brand-transform: uppercase;
+  --brand-spacing: 8px;
+  --brand-fill: linear-gradient(180deg, #fff3b0 0%, #f1c94b 42%, #b8860b 62%, #f7d774 100%);
+  --brand-shadow: drop-shadow(0 2px 0 #3a0709) drop-shadow(0 0 8px rgba(255, 200, 80, .35));
+  --tagline: #f3d98a;
+  --marquee-bg: #3a0709;
+  --marquee-fg: #f1c94b;
+  --peek-bg: #f1e3bf;
+  --peek-fg: #5c0d10;
+  --peek-label: #a5161a;
+  --peek-border: #c9a227;
+  --tabs-bg: #6e0b10;
+  --tabs-rule: 4px double #c9a227;
+  --tab-bg: transparent;
+  --tab-fg: #f3d98a;
+  --tab-border: 1px solid rgba(201, 162, 39, .45);
+  --tab-on-bg: linear-gradient(#f7d774, #c9a227);
+  --tab-on-fg: #4a0a0c;
+  --tab-on-border: 1px solid #f7d774;
+  --tab-on-mark: "★ ";
+  --tab-mark-color: #8b0d12;
+  --tab-head: #f7d774;
+  /* 金の玉縁を付けた深紅の帯に、金の玉を並べる */
+  --stripe: radial-gradient(circle, #f1c94b 0 3px, transparent 3.6px) 0 50% / 20px 100% repeat-x, linear-gradient(#c9a227 0 2px, #8b0d12 2px calc(100% - 2px), #c9a227 calc(100% - 2px));
+  --stripe-h: 14px;
+  --h1: #8b0d12;
+  --h1-mark: "★ ";
+  --h1-mark-color: #c9a227;
+  --h1-rule: 3px double #c9a227;
+  --h2: #5c0d10;
+  --h2-mark: "◆ ";
+  --h2-mark-color: #c9a227;
+  --link: #8b0d12;
+  --link-visited: #5c0d10;
+  --link-hover-fg: #f7d774;
+  --link-hover-bg: #8b0d12;
+  --btn-bg: linear-gradient(#a5161a, #7a0b10);
+  --btn-fg: #f7d774;
+  --btn-border: 2px solid #c9a227;
+  --input-border: 1px solid #8b6b2a;
+  --stat-bg: #fbf4e2;
+  --stat-fg: #5c0d10;
+  --stat-label: #8b6b2a;
+  --stat-sub: #6b5443;
+  --stat-border: 1px solid #c9a227;
+  --stat-prefix: "★ ";
+  --stat-glow: none;
+  --thead-bg: #8b0d12;
+  --thead-fg: #f7d774;
+  --ok: #2f5d34;
+  --ok-soft: #e3ead2;
+  --warn: #7a4b00;
+  --warn-soft: #f6e2b0;
+  --bad: #f7ecd0;
+  --bad-soft: #a5161a;
+  --info: #5c0d10;
+  --info-soft: #efe3c4;
+  --alert: #a5161a;
+  --foot-bg: #5c0d10;
+  --foot-fg: #f3d98a;
+  --foot-muted: #d9bf86;
+  --counter-fg: #f7d774;
+  --banner-bg: #8b0d12;
+  --banner-fg: #f7d774;
+  --sea: #efe3c4;
+  --land: #a5161a;
+  --land-line: #f6edd5;
+  --pin-ok: #2f5d34;
+  --pin-warn: #c9a227;
+  --pin-bad: #3a0709;
+  --pin-bad-mark: #f7d774;
+}
+:root[data-theme="su3"] body { background-attachment: fixed; }
+:root[data-theme="su3"] .title-row { border-bottom: 3px solid #c9a227; }
+:root[data-theme="su3"] .brand::before, :root[data-theme="su3"] .brand::after { content: "★"; font-size: .6em; vertical-align: .25em; margin: 0 .3em; letter-spacing: 0; }
+:root[data-theme="su3"] .tagline { font-weight: 700; letter-spacing: 6px; text-transform: uppercase; }
+:root[data-theme="su3"] .peek .blink { animation: none; }
+:root[data-theme="su3"] h1 { text-transform: uppercase; letter-spacing: 2px; font-size: 23px; }
+:root[data-theme="su3"] h2 { text-transform: uppercase; letter-spacing: 1px; }
+:root[data-theme="su3"] .btn { text-transform: uppercase; font-weight: 700; letter-spacing: 1px; }
+:root[data-theme="su3"] .stat { border-top: 4px solid #8b0d12; }
+:root[data-theme="su3"] .tabs button { letter-spacing: .5px; }
+:root[data-theme="su3"] .tab-head { text-transform: uppercase; letter-spacing: 2px; }
+:root[data-theme="su3"] .banner { font: 700 12px/27px "PT Serif", "Times New Roman", serif; font-style: normal; text-shadow: none; border: 1px solid #c9a227; letter-spacing: 1px; }
+@media (max-width: 640px) {
+  :root[data-theme="su3"] .brand, :root[data-theme="su3"] .brand:visited { font-size: 32px; letter-spacing: 4px; }
+  :root[data-theme="su3"] .tagline { letter-spacing: 2px; font-size: 11px; }
+}
+
 /* ---------- ソ連風（80年代末の計算センター）：連続用紙（緑の帯と送り穴）に打ち出した印字と、琥珀色の端末 ---------- */
 :root[data-theme="su2"] {
   --font: "Courier New", "Lucida Console", "Liberation Mono", monospace;

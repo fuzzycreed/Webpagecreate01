@@ -181,7 +181,7 @@ OVERRIDES = {
   'group.you': '貴殿ニ就テ', 'group.lookup': '照會', 'group.more': '其ノ他',
   'theme.label': '意匠：', 'theme.mono': '白・灰色（標準）', 'theme.jp': '🇯🇵 日本風（平成）', 'theme.ijp': '📜 大日本帝國風（戰前ノ印刷物）',
   'theme.us': '🇺🇸 米國風（九〇年代）', 'theme.ru': '🇷🇺 露西亞風（二〇〇〇年代）', 'theme.ru2': '🇷🇺 露西亞風（甚ダ怪シキ）',
-  'theme.su': '★ ソ聯風（構成主義ノ貼紙）', 'theme.su2': '💾 ソ聯風（八〇年代末ノ計算所）', 'theme.cn': '🇨🇳 中華風（現代）',
+  'theme.su': '★ ソ聯風（構成主義ノ貼紙）', 'theme.su3': '🏛 ソ聯風（スターリン時代）', 'theme.su2': '💾 ソ聯風（八〇年代末ノ計算所）', 'theme.cn': '🇨🇳 中華風（現代）',
   'theme.it': '🇮🇹 伊太利風（二〇〇〇年代）', 'theme.de': '🇩🇪 獨逸風（二〇〇〇年代）', 'theme.gb': '🏴󠁧󠁢󠁥󠁮󠁧󠁿 英國風（文字放送）',
   'theme.gb2': '🏴󠁧󠁢󠁥󠁮󠁧󠁿 英國風（甚ダ堅キ）',
   'go': '調ベル', 'loading': '取得中…', 'computing': '計算中…', 'searching': '照會中…', 'querying': '問合セ中…',
