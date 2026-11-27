@@ -2099,6 +2099,32 @@ const THEMES = {
     bestViewed: 'Best viewed on a 14-inch telly, or Internet Explorer 5.5 at 800×600 (only joking)',
     copyright: 'Copyright © 2026 NetCheck. All rights reserved.',
   },
+  // 大日本帝国風：戦前の官報・新聞のような、旧字体とカタカナ交じりの文語調（軍事的な標語や旗・紋章は使わない）
+  ijp: {
+    marquee: '◎謹告◎　本サイトハ貴殿ノ電網番地・閲覽器・畫面寸法・活字ニ至ル迄　悉ク拜見致シ候　◎　御用ノ節ハ「調ベル」ヲ押サレタシ　◎　萬一不具合有之候ハバ　何卒御容赦被下度候　◎',
+    tagline: '帝國電網接續診斷所', // CSS で右から左へ表示する（戦前の右横書き）
+    peekLabel: '【告】',
+    peek: (ip, detail) => `貴殿ノ電網番地 ${ip}${detail ? `（${detail}）` : ''} ハ　當所ヨリ明白ニ見エ居リ候。`,
+    counterPre: '貴殿ハ',
+    counterPost: '番目ノ御來訪者ナリ',
+    kiriban: '◎ 目出度キ番號ナリ　謹ンデ御祝ヒ申上候 ◎',
+    linkFree: '相互連絡（リンク）御自由ニ',
+    bestViewed: '推奨環境　八百×六百以上ノ畫面　（戯言ナリ）',
+    copyright: '版權所有　昭和百一年（西暦二〇二六年）　NetCheck',
+  },
+  // ソ連風：1920年代の構成主義ポスターのような、斜めの帯と大きな見出し（国章や鎌と槌は使わない）
+  su: {
+    marquee: '★ ПОЛЬЗОВАТЕЛИ ВСЕХ СТРАН, ПРОВЕРЯЙТЕ СОЕДИНЕНИЕ! ★ ПЯТИЛЕТКУ ДИАГНОСТИКИ — ЗА ЧЕТЫРЕ ГОДА! ★ КАЖДОМУ БРАУЗЕРУ — ОТПЕЧАТОК! ★ ПИНГ — ЭТО ВАЖНО! ★',
+    tagline: 'НАРОДНЫЙ КОМИССАРИАТ СЕТЕВОЙ ДИАГНОСТИКИ',
+    peekLabel: 'ТОВАРИЩ!',
+    peek: (ip, detail) => `Ваш IP-адрес ${ip}${detail ? ` (${detail})` : ''} учтён и виден этому сайту.`,
+    counterPre: 'Вы —',
+    counterPost: 'посетитель. План перевыполнен!',
+    kiriban: '★ Юбилейный посетитель! Вам полагается грамота (шутка) ★',
+    linkFree: 'Ставьте ссылку — укрепляйте сеть!',
+    bestViewed: 'Рекомендуется экран 800×600 и выше (шутка)',
+    copyright: '© 2026 NetCheck. Наркомат диагностики (шутка).',
+  },
   // とても堅いイングランドのサイト風：白黒、セリフ体、動きなし、回りくどい公用文
   gb2: {
     marquee: 'NOTICE TO VISITORS — Your Internet Protocol address, browser particulars, screen dimensions and installed typefaces are disclosed to this page in the ordinary course of its operation. Visitors are respectfully reminded to conduct themselves accordingly.',

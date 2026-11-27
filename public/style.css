@@ -1,5 +1,5 @@
 /* テーマは <html data-theme="..."> で切り替える。
-   mono = 白と灰色のブロック模様（標準）。jp / us / ru / ru2 / cn / it / de / gb / gb2 = 各国の隠しテーマ。
+   mono = 白と灰色のブロック模様（標準）。jp / ijp / us / ru / ru2 / su / cn / it / de / gb / gb2 = 各国の隠しテーマ。
    色や書体はすべて下の変数で決まり、構造のCSSは共通。 */
 
 /* ---------- 標準：白と灰色のブロック模様（目にやさしい低コントラスト） ---------- */
@@ -960,6 +960,209 @@
 :root[data-theme="gb2"] .banner { font: 400 11px/27px Georgia, serif; font-style: normal; letter-spacing: 2px; text-transform: uppercase; text-shadow: none; border: 1px solid #111111; }
 :root[data-theme="gb2"] .counter { background: #111111; border: 1px solid #111111; }
 :root[data-theme="gb2"] .kiriban { font-weight: normal; font-style: italic; }
+
+/* ---------- 大日本帝国風：戦前の官報・新聞（和紙色の紙面、墨と朱、明朝体、二重罫） ---------- */
+:root[data-theme="ijp"] {
+  --font: "Hiragino Mincho ProN", "Yu Mincho", YuMincho, "MS PMincho", "Noto Serif JP", "Noto Serif CJK JP", serif;
+  --mono: "MS Mincho", "Hiragino Mincho ProN", "Yu Mincho", "Courier New", monospace;
+  --bg-color: #d9caa6;
+  /* 和紙のむら：にじんだ斑点を薄く重ねる */
+  --bg-image: radial-gradient(circle at 20% 30%, rgba(120, 90, 40, .10) 0 2px, transparent 3px), radial-gradient(circle at 70% 80%, rgba(90, 60, 20, .08) 0 1.5px, transparent 2.5px), radial-gradient(circle at 45% 60%, rgba(255, 255, 255, .25) 0 3px, transparent 4px);
+  --bg-size: 37px 41px, 53px 47px, 61px 59px;
+  --paper: #f3ead2;
+  --text: #231c12;
+  --muted: #5d4f39;
+  --line: #8c7b5a;
+  --row-a: #ece1c3;
+  --row-b: #f6efdb;
+  --card-bg: #f6efdb;
+  --page-border: 3px double #231c12;
+  --page-shadow: 0 0 0 6px #f3ead2, 0 0 0 7px #231c12;
+  --title-bg: #f3ead2;
+  --brand-font: 700 40px/1.15 "Hiragino Mincho ProN", "Yu Mincho", "MS PMincho", serif;
+  --brand-style: normal;
+  --brand-transform: none;
+  --brand-spacing: 6px;
+  --brand-fill: linear-gradient(#231c12, #231c12);
+  --brand-shadow: none;
+  --tagline: #a52a1e;
+  --marquee-bg: #231c12;
+  --marquee-fg: #f3ead2;
+  --peek-bg: #f6efdb;
+  --peek-fg: #231c12;
+  --peek-label: #a52a1e;
+  --peek-border: #231c12;
+  --tabs-bg: #ece1c3;
+  --tabs-rule: 3px double #231c12;
+  --tab-bg: #f6efdb;
+  --tab-fg: #231c12;
+  --tab-border: 1px solid #8c7b5a;
+  --tab-on-bg: #a52a1e;
+  --tab-on-fg: #f6efdb;
+  --tab-on-border: 1px solid #7c1f15;
+  --tab-on-mark: "◎ ";
+  --tab-mark-color: #f6efdb;
+  --tab-head: #a52a1e;
+  --stripe: linear-gradient(#231c12 0 2px, transparent 2px 5px, #231c12 5px 6px);
+  --stripe-h: 6px;
+  --h1: #231c12;
+  --h1-mark: "◎ ";
+  --h1-mark-color: #a52a1e;
+  --h1-rule: 3px double #231c12;
+  --h2: #231c12;
+  --h2-mark: "一、";
+  --h2-mark-color: #a52a1e;
+  --link: #1f3a63;
+  --link-visited: #4b2c63;
+  --link-hover-fg: #f6efdb;
+  --link-hover-bg: #a52a1e;
+  --btn-bg: #a52a1e;
+  --btn-fg: #f6efdb;
+  --btn-border: 1px solid #7c1f15;
+  --input-border: 1px solid #5d4f39;
+  --stat-bg: #f6efdb;
+  --stat-fg: #231c12;
+  --stat-label: #a52a1e;
+  --stat-sub: #5d4f39;
+  --stat-border: 1px solid #231c12;
+  --stat-prefix: "";
+  --thead-bg: #231c12;
+  --thead-fg: #f3ead2;
+  --ok: #2f5d34;
+  --ok-soft: #e4ead0;
+  --warn: #7a4b00;
+  --warn-soft: #f3e2b5;
+  --bad: #a52a1e;
+  --bad-soft: #f2d9c9;
+  --info: #1f3a63;
+  --info-soft: #e6e3d3;
+  --alert: #a52a1e;
+  --foot-bg: #ece1c3;
+  --foot-fg: #231c12;
+  --foot-muted: #5d4f39;
+  --counter-fg: #f3ead2;
+  --banner-bg: #a52a1e;
+  --banner-fg: #f6efdb;
+  --sea: #ece1c3;
+  --land: #b9a67e;
+  --land-line: #f3ead2;
+  --pin-ok: #2f5d34;
+  --pin-warn: #b07a12;
+  --pin-bad: #a52a1e;
+}
+/* 題字は右から左へ（戦前の右横書き）。見出しの周りに朱の枠 */
+:root[data-theme="ijp"] .tagline { direction: rtl; unicode-bidi: bidi-override; font-weight: 700; letter-spacing: 8px; font-size: 15px; }
+:root[data-theme="ijp"] .title-row { border-bottom: 1px solid #231c12; }
+:root[data-theme="ijp"] .brand::after { content: "印"; display: inline-block; margin-left: 10px; padding: 2px 4px; vertical-align: 6px; font: 700 14px/1 "Hiragino Mincho ProN", "Yu Mincho", serif; letter-spacing: 0; color: #a52a1e; -webkit-text-fill-color: #a52a1e; border: 2px solid #a52a1e; border-radius: 3px; transform: rotate(-6deg); }
+:root[data-theme="ijp"] .peek .blink, :root[data-theme="su"] .peek .blink { animation: none; }
+:root[data-theme="ijp"] .stat { border-top: 3px solid #a52a1e; }
+:root[data-theme="ijp"] .badge { border-radius: 0; }
+:root[data-theme="ijp"] .banner { font: 700 12px/27px "Hiragino Mincho ProN", "Yu Mincho", serif; font-style: normal; text-shadow: none; }
+
+/* ---------- ソ連風：構成主義ポスター（赤・黒・生成り、斜めの帯、太い大文字） ---------- */
+:root[data-theme="su"] {
+  --font: "Arial Narrow", "Roboto Condensed", "Helvetica Neue", Arial, sans-serif;
+  --mono: "Courier New", Courier, monospace;
+  --bg-color: #e9dfc7;
+  /* 大きな斜めの赤い帯と黒い帯 */
+  --bg-image: linear-gradient(115deg, transparent 0 62%, #c1121f 62% 71%, transparent 71% 76%, #1b1b1b 76% 79%, transparent 79%), linear-gradient(115deg, transparent 0 12%, rgba(27, 27, 27, .9) 12% 13.5%, transparent 13.5%);
+  --bg-size: 100% 100%;
+  --paper: #f4ecd8;
+  --text: #1b1b1b;
+  --muted: #5a5148;
+  --line: #1b1b1b;
+  --row-a: #ebe1c9;
+  --row-b: #f6efdd;
+  --card-bg: #f6efdd;
+  --page-border: 4px solid #1b1b1b;
+  --page-shadow: 12px 12px 0 #c1121f;
+  --title-bg: linear-gradient(160deg, #c1121f 0 58%, #1b1b1b 58% 64%, #f4ecd8 64% 100%);
+  --brand-font: 900 48px/1 Impact, "Arial Black", "Arial Narrow", sans-serif;
+  --brand-style: normal;
+  --brand-transform: uppercase;
+  --brand-spacing: 3px;
+  --brand-fill: linear-gradient(#f4ecd8, #f4ecd8);
+  --brand-shadow: drop-shadow(4px 4px 0 #1b1b1b);
+  --tagline: #f4ecd8;
+  --marquee-bg: #1b1b1b;
+  --marquee-fg: #f4ecd8;
+  --peek-bg: #1b1b1b;
+  --peek-fg: #f4ecd8;
+  --peek-label: #e63946;
+  --peek-border: #c1121f;
+  --tabs-bg: #1b1b1b;
+  --tabs-rule: 6px solid #c1121f;
+  --tab-bg: #2b2b2b;
+  --tab-fg: #f4ecd8;
+  --tab-border: 0 solid transparent;
+  --tab-on-bg: #c1121f;
+  --tab-on-fg: #f4ecd8;
+  --tab-on-border: 0 solid transparent;
+  --tab-on-mark: "▶ ";
+  --tab-mark-color: #f4ecd8;
+  --tab-head: #e63946;
+  --stripe: repeating-linear-gradient(115deg, #c1121f 0 18px, #1b1b1b 18px 24px, #f4ecd8 24px 30px);
+  --stripe-h: 10px;
+  --h1: #c1121f;
+  --h1-mark: "■ ";
+  --h1-mark-color: #1b1b1b;
+  --h1-rule: 6px solid #1b1b1b;
+  --h2: #1b1b1b;
+  --h2-mark: "▶ ";
+  --h2-mark-color: #c1121f;
+  --link: #a4161a;
+  --link-visited: #6a040f;
+  --link-hover-fg: #f4ecd8;
+  --link-hover-bg: #1b1b1b;
+  --btn-bg: #c1121f;
+  --btn-fg: #f4ecd8;
+  --btn-border: 2px solid #1b1b1b;
+  --input-border: 2px solid #1b1b1b;
+  --stat-bg: #1b1b1b;
+  --stat-fg: #f4ecd8;
+  --stat-label: #e63946;
+  --stat-sub: #cfc6b3;
+  --stat-border: 0 solid transparent;
+  --stat-prefix: "";
+  --thead-bg: #1b1b1b;
+  --thead-fg: #f4ecd8;
+  --ok: #2d6a4f;
+  --ok-soft: #e3ead6;
+  --warn: #7a4b00;
+  --warn-soft: #f4e2b8;
+  --bad: #f4ecd8;
+  --bad-soft: #c1121f;
+  --info: #1b1b1b;
+  --info-soft: #ebe1c9;
+  --alert: #c1121f;
+  --foot-bg: #1b1b1b;
+  --foot-fg: #f4ecd8;
+  --foot-muted: #cfc6b3;
+  --counter-fg: #e63946;
+  --banner-bg: #c1121f;
+  --banner-fg: #f4ecd8;
+  --sea: #ebe1c9;
+  --land: #a4161a;
+  --land-line: #f4ecd8;
+  --pin-ok: #1b1b1b;
+  --pin-warn: #d4a017;
+  --pin-bad: #f4ecd8;
+  --pin-bad-mark: #1b1b1b;
+}
+:root[data-theme="su"] body { background-attachment: fixed; }
+:root[data-theme="su"] .title-row { text-align: left; padding-left: 28px; }
+:root[data-theme="su"] .tagline { font-weight: 700; letter-spacing: 3px; }
+:root[data-theme="su"] h1 { text-transform: uppercase; letter-spacing: 1px; font-size: 24px; }
+:root[data-theme="su"] h2 { text-transform: uppercase; letter-spacing: .5px; }
+:root[data-theme="su"] .btn { text-transform: uppercase; font-weight: 700; letter-spacing: 1px; }
+:root[data-theme="su"] .stat { border-left: 8px solid #c1121f; }
+:root[data-theme="su"] .tabs button { text-transform: uppercase; font-weight: 700; letter-spacing: .5px; font-size: 12px; }
+:root[data-theme="su"] .banner { font: 900 13px/27px Impact, "Arial Black", sans-serif; font-style: normal; text-shadow: none; border: 2px solid #1b1b1b; }
+@media (max-width: 640px) {
+  :root[data-theme="su"] .title-row { text-align: center; padding-left: 10px; }
+  :root[data-theme="su"] .tagline { letter-spacing: 1px; font-size: 11px; }
+  :root[data-theme="ijp"] .tagline { letter-spacing: 4px; }
+}
 
 /* ---------- 共通の構造 ---------- */
 * { box-sizing: border-box; }
