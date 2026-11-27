@@ -1,5 +1,5 @@
 /* テーマは <html data-theme="..."> で切り替える。
-   mono = 白と灰色のブロック模様（標準）。jp / ijp / us / ru / ru2 / su / cn / it / de / gb / gb2 = 各国の隠しテーマ。
+   mono = 白と灰色のブロック模様（標準）。jp / ijp / us / ru / ru2 / su / su2 / cn / it / de / gb / gb2 = 各国の隠しテーマ。
    色や書体はすべて下の変数で決まり、構造のCSSは共通。 */
 
 /* ---------- 標準：白と灰色のブロック模様（目にやさしい低コントラスト） ---------- */
@@ -1162,6 +1162,122 @@
   :root[data-theme="su"] .title-row { text-align: center; padding-left: 10px; }
   :root[data-theme="su"] .tagline { letter-spacing: 1px; font-size: 11px; }
   :root[data-theme="ijp"] .tagline { letter-spacing: 4px; }
+}
+
+/* ---------- ソ連風（80年代末の計算センター）：連続用紙（緑の帯と送り穴）に打ち出した印字と、琥珀色の端末 ---------- */
+:root[data-theme="su2"] {
+  --font: "Courier New", "Lucida Console", "Liberation Mono", monospace;
+  --mono: "Courier New", "Lucida Console", "Liberation Mono", monospace;
+  --bg-color: #5b6470;
+  --bg-image: repeating-linear-gradient(0deg, rgba(0, 0, 0, .06) 0 2px, transparent 2px 6px);
+  --bg-size: auto;
+  /* 紙面：3行ぶんずつ薄緑と白が交互になる連続用紙 */
+  --paper: #fbfbf4 repeating-linear-gradient(#fbfbf4 0 48px, #dcebd8 48px 96px);
+  --text: #2a2f45;
+  --muted: #555a70;
+  --line: #9db59a;
+  --row-a: transparent;
+  --row-b: transparent;
+  --card-bg: transparent;
+  --page-border: 0 solid transparent;
+  --page-shadow: 0 6px 18px rgba(0, 0, 0, .45);
+  --title-bg: #120d02;
+  --brand-font: 700 38px/1.1 "Courier New", "Lucida Console", monospace;
+  --brand-style: normal;
+  --brand-transform: uppercase;
+  --brand-spacing: 6px;
+  --brand-fill: linear-gradient(#ffb000, #ffb000);
+  --brand-shadow: drop-shadow(0 0 6px rgba(255, 176, 0, .7));
+  --tagline: #ffb000;
+  --marquee-bg: #120d02;
+  --marquee-fg: #ffb000;
+  --peek-bg: #120d02;
+  --peek-fg: #ffc94d;
+  --peek-label: #ffb000;
+  --peek-border: #3a2a05;
+  --tabs-bg: transparent;
+  --tabs-rule: 1px dashed #7d927a;
+  --tab-bg: transparent;
+  --tab-fg: #2a2f45;
+  --tab-border: 1px dashed #7d927a;
+  --tab-on-bg: #2a2f45;
+  --tab-on-fg: #fbfbf4;
+  --tab-on-border: 1px solid #2a2f45;
+  --tab-on-mark: "> ";
+  --tab-mark-color: #fbfbf4;
+  --tab-head: #555a70;
+  --stripe: repeating-linear-gradient(90deg, #2a2f45 0 6px, transparent 6px 10px);
+  --stripe-h: 2px;
+  --h1: #2a2f45;
+  --h1-mark: "*** ";
+  --h1-mark-color: #2a2f45;
+  --h1-rule: 1px dashed #2a2f45;
+  --h2: #2a2f45;
+  --h2-mark: "--- ";
+  --h2-mark-color: #555a70;
+  --link: #1d3a8a;
+  --link-visited: #4b2c63;
+  --link-hover-fg: #fbfbf4;
+  --link-hover-bg: #2a2f45;
+  --btn-bg: #d8d5c8;
+  --btn-fg: #2a2f45;
+  --btn-border: 2px outset #f2f0e6;
+  --input-border: 1px solid #2a2f45;
+  --stat-bg: #120d02;
+  --stat-fg: #ffb000;
+  --stat-label: #c08400;
+  --stat-sub: #ffcf66;
+  --stat-border: 2px solid #3a2a05;
+  --stat-glow: 0 0 5px rgba(255, 176, 0, .6);
+  --stat-prefix: "> ";
+  --thead-bg: transparent;
+  --thead-fg: #2a2f45;
+  --ok: #24572e;
+  --ok-soft: transparent;
+  --warn: #6b4a00;
+  --warn-soft: transparent;
+  --bad: #8a1c1c;
+  --bad-soft: transparent;
+  --info: #2a2f45;
+  --info-soft: transparent;
+  --alert: #8a1c1c;
+  --foot-bg: #120d02;
+  --foot-fg: #ffb000;
+  --foot-muted: #c08400;
+  --counter-fg: #ffb000;
+  --banner-bg: #120d02;
+  --banner-fg: #ffb000;
+  --sea: #fbfbf4;
+  --land: #b9cdb5;
+  --land-line: #fbfbf4;
+  --pin-ok: #24572e;
+  --pin-warn: #b07a12;
+  --pin-bad: #8a1c1c;
+}
+/* 紙の両端に、用紙を送るための穴の列 */
+:root[data-theme="su2"] .page { position: relative; padding: 0 30px; background-clip: padding-box;
+  background: radial-gradient(circle at 15px 12px, #5b6470 0 5px, transparent 5.5px) 0 0 / 30px 24px repeat-y,
+              radial-gradient(circle at 15px 12px, #5b6470 0 5px, transparent 5.5px) 100% 0 / 30px 24px repeat-y,
+              repeating-linear-gradient(#fbfbf4 0 48px, #dcebd8 48px 96px); }
+:root[data-theme="su2"] .page::before, :root[data-theme="su2"] .page::after { content: ""; position: absolute; top: 0; bottom: 0; width: 1px; border-left: 1px dashed #b5b5a8; }
+:root[data-theme="su2"] .page::before { left: 30px; }
+:root[data-theme="su2"] .page::after { right: 30px; }
+:root[data-theme="su2"] main, :root[data-theme="su2"] .side, :root[data-theme="su2"] .tabs { background: transparent; }
+:root[data-theme="su2"] .title-row, :root[data-theme="su2"] .marquee, :root[data-theme="su2"] .peek, :root[data-theme="su2"] .foot { margin: 0 -30px; text-shadow: 0 0 4px rgba(255, 176, 0, .55); }
+:root[data-theme="su2"] .foot { margin-top: 0; }
+:root[data-theme="su2"] .title-row { border-bottom: 3px solid #3a2a05; }
+:root[data-theme="su2"] h1, :root[data-theme="su2"] h2, :root[data-theme="su2"] .tabs button, :root[data-theme="su2"] .btn { text-transform: uppercase; }
+:root[data-theme="su2"] table.list thead th { border-bottom: 1px dashed #2a2f45; }
+:root[data-theme="su2"] .card { border-style: dashed; }
+:root[data-theme="su2"] .note { border-style: dashed; border-width: 1px; }
+:root[data-theme="su2"] .peek .blink { animation: blink 1.2s steps(2, start) infinite; }
+:root[data-theme="su2"] .legend .dot { box-shadow: none; }
+@media (max-width: 640px) {
+  :root[data-theme="su2"] .page { padding: 0 18px; background-size: 18px 18px, 18px 18px, auto; }
+  :root[data-theme="su2"] .page::before { left: 18px; }
+  :root[data-theme="su2"] .page::after { right: 18px; }
+  :root[data-theme="su2"] .title-row, :root[data-theme="su2"] .marquee, :root[data-theme="su2"] .peek, :root[data-theme="su2"] .foot { margin: 0 -18px; }
+  :root[data-theme="su2"] .tagline { letter-spacing: 0; font-size: 11px; }
 }
 
 /* ---------- 共通の構造 ---------- */

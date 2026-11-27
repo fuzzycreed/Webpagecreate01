@@ -2,6 +2,7 @@
 // 表示言語は英語が標準で、ヘッダー右上の Lang プルダウンで切り替える（I18N に言語を足せば増やせる）。
 
 import { I18N } from './i18n.js';
+import './i18n-ja-ijp.js'; // 大日本帝国風テーマ × 日本語のときの辞書（I18N['ja-ijp']）
 import { parseIpRdap, parseDomainRdap, rdapIpUrls, relatedRdapUrl, mergeDomainRdap } from './rdap.js';
 import { normalizeCerts, certsUrl, normalizeSubdomains, subdomainsUrl } from './certs.js';
 
@@ -29,10 +30,15 @@ const store = {
 let lang = store.get('netcheck-lang');
 if (!I18N[lang]) lang = 'en';
 
+// 文言の辞書。日本語で大日本帝国風テーマのときだけ、戦前の文体・旧字体・敵性語なしの辞書を使う
+const dict = lang === 'ja' && document.documentElement.dataset.theme === 'ijp' && I18N['ja-ijp'] ? 'ja-ijp' : lang;
+
 function t(key, ...args) {
-  const v = I18N[lang][key] ?? I18N.en[key] ?? key;
+  const v = I18N[dict][key] ?? I18N[lang][key] ?? I18N.en[key] ?? key;
   return typeof v === 'function' ? v(...args) : v;
 }
+// 画面に直接書いている英字の項目名（Canvas、TTL など）。辞書に term.○○ があれば置き換える
+const term = (label) => I18N[dict]?.[`term.${label}`] ?? label;
 // サーバーが返すエラーコード（bad_name など）を文言にする。知らないものはそのまま出す
 const errText = (code) => (I18N.en[`err.${code}`] ? t(`err.${code}`) : code);
 
@@ -40,6 +46,11 @@ function applyStaticText() {
   document.documentElement.lang = lang;
   document.title = t('docTitle');
   for (const n of document.querySelectorAll('[data-i18n]')) n.textContent = t(n.dataset.i18n);
+  if (dict === 'ja-ijp') {
+    // 英字の名前も使わない
+    $('.brand').textContent = '電網檢査所';
+    for (const n of document.querySelectorAll('.banner')) n.textContent = '電網檢査所';
+  }
   for (const n of document.querySelectorAll('[data-i18n-ph]')) n.placeholder = t(n.dataset.i18nPh);
   for (const n of document.querySelectorAll('[data-i18n-aria]')) n.setAttribute('aria-label', t(n.dataset.i18nAria));
   for (const n of document.querySelectorAll('[data-i18n-label]')) n.label = t(n.dataset.i18nLabel); // プルダウンのグループ見出し
@@ -390,8 +401,8 @@ async function initBrowser() {
         [t('br.vendor'), n.vendor],
         [t('br.languages'), (n.languages || [n.language]).join(', ')],
         [t('br.cookie'), yn(n.cookieEnabled)],
-        ['Do Not Track', n.doNotTrack === '1' ? t('br.on') : n.doNotTrack === '0' ? t('br.off') : t('br.unset')],
-        ['Global Privacy Control', n.globalPrivacyControl === undefined ? t('br.unsupported') : n.globalPrivacyControl ? t('br.on') : t('br.off')],
+        [term('Do Not Track'), n.doNotTrack === '1' ? t('br.on') : n.doNotTrack === '0' ? t('br.off') : t('br.unset')],
+        [term('Global Privacy Control'), n.globalPrivacyControl === undefined ? t('br.unsupported') : n.globalPrivacyControl ? t('br.on') : t('br.off')],
         [t('br.webdriver'), yn(n.webdriver)],
         [t('br.pdf'), yn(n.pdfViewerEnabled)],
         [t('br.plugins'), n.plugins?.length],
@@ -420,7 +431,7 @@ async function initBrowser() {
         [t('br.scheme'), mq('(prefers-color-scheme: dark)') ? t('br.dark') : t('br.light')],
         [t('br.reducedMotion'), yn(mq('(prefers-reduced-motion: reduce)'))],
         [t('br.p3'), yn(mq('(color-gamut: p3)'))],
-        ['HDR', yn(mq('(dynamic-range: high)'))],
+        [term('HDR'), yn(mq('(dynamic-range: high)'))],
         [t('br.pointer'), mq('(pointer: coarse)') ? t('br.pTouch') : mq('(pointer: fine)') ? t('br.pMouse') : t('br.pNone')],
       ]),
     ),
@@ -556,28 +567,28 @@ async function initFp() {
 
   hero.replaceChildren(
     stat(t('fp.id'), short(id), t('fp.idSub'), true),
-    stat('Canvas', short(canvas?.hash), null, true),
-    stat('WebGL', short(webgl?.hash), null, true),
-    stat('Audio', short(audio?.hash), null, true),
+    stat(term('Canvas'), short(canvas?.hash), null, true),
+    stat(term('WebGL'), short(webgl?.hash), null, true),
+    stat(term('Audio'), short(audio?.hash), null, true),
   );
 
   body.replaceChildren(
     note('info', t('fp.intro')),
     ...section(
-      'Canvas',
+      term('Canvas'),
       kvTable([
         [t('fp.hash'), canvas?.hash ?? t('fp.unavailable')],
         canvas && [t('fp.rendering'), canvas.canvas],
       ]),
     ),
     ...section(
-      'WebGL',
+      term('WebGL'),
       webgl
         ? kvTable([
             [t('fp.hash'), webgl.hash],
             [t('fp.gpuVendor'), webgl.vendor],
-            ['GPU', webgl.renderer],
-            ['API', webgl.api],
+            [term('GPU'), webgl.renderer],
+            [term('API'), webgl.api],
             [t('fp.version'), webgl.version],
             [t('fp.shading'), webgl.shading],
             [t('fp.maxTex'), webgl.maxTexture],
@@ -586,7 +597,7 @@ async function initFp() {
           ])
         : note('warn', t('fp.noWebgl')),
     ),
-    ...section('Audio', audio ? kvTable([[t('fp.hash'), audio.hash], [t('fp.value'), audio.value]]) : note('warn', t('fp.noAudio'))),
+    ...section(term('Audio'), audio ? kvTable([[t('fp.hash'), audio.hash], [t('fp.value'), audio.value]]) : note('warn', t('fp.noAudio'))),
     ...section(
       t('fp.fonts', FONT_CANDIDATES.length, fonts.length),
       el('div', { class: 'card' }, el('div', { class: 'chips' }, fonts.length ? fonts.map((f) => el('span', { class: 'chip' }, f)) : el('span', { class: 'muted' }, t('fp.noFonts')))),
@@ -603,7 +614,7 @@ async function initFp() {
         [t('fp.voices'), voices ? `${voices.length}${voices.length ? ` — ${voices.slice(0, 4).join(', ')}${voices.length > 4 ? ' …' : ''}` : ''}` : null],
         [t('fp.devices'), devices ? t('fp.devVal', devices.audioinput, devices.videoinput, devices.audiooutput) : null],
         [t('fp.perms'), perms?.length ? lines(perms.map(([name, state]) => `${name}: ${state}`)) : null],
-        ['WebGPU', gpu],
+        [term('WebGPU'), gpu],
         [t('pv.blocker'), blocker ? (blocker.cosmetic || blocker.network ? t('pv.blockerOn') : t('pv.blockerOff')) : null],
       ]),
     ),
@@ -693,10 +704,10 @@ async function runPrivacy() {
     const real = cands.filter((c) => !c.address.endsWith('.local'));
     // 種類（IPv4 / IPv6）が同じなのに、サイトから見えるIPと違う外部IPが出ていたら漏れ
     const leaked = [...new Set(real.filter((c) => c.type !== 'host' && serverIp && c.address !== serverIp && c.address.includes(':') === serverIp.includes(':')).map((c) => c.address))];
-    if (leaked.length) rows.push(['WebRTC', t('pv.webrtcLeak', leaked.join(', ')), 'warn']);
-    else if (real.some((c) => c.type === 'host')) rows.push(['WebRTC', t('pv.webrtcLocal'), 'warn']);
-    else rows.push(['WebRTC', t('pv.webrtcOk'), 'ok']);
-  } else if (!window.RTCPeerConnection) rows.push(['WebRTC', t('pv.webrtcOk'), 'ok']);
+    if (leaked.length) rows.push([term('WebRTC'), t('pv.webrtcLeak', leaked.join(', ')), 'warn']);
+    else if (real.some((c) => c.type === 'host')) rows.push([term('WebRTC'), t('pv.webrtcLocal'), 'warn']);
+    else rows.push([term('WebRTC'), t('pv.webrtcOk'), 'ok']);
+  } else if (!window.RTCPeerConnection) rows.push([term('WebRTC'), t('pv.webrtcOk'), 'ok']);
   if (info && info.tor !== null) rows.push([t('ip.tor'), info.tor ? t('yes') : t('no'), 'info']);
   if (blocker) rows.push([t('pv.blocker'), blocker.cosmetic || blocker.network ? t('pv.blockerOn') : t('pv.blockerOff'), blocker.cosmetic || blocker.network ? 'ok' : 'info']);
   const signals = navigator.globalPrivacyControl === true || navigator.doNotTrack === '1';
@@ -836,7 +847,7 @@ function dnsTable(title, hint, results, majority, queryType) {
       el('td', {}, state),
     );
   });
-  return section(title, el('p', { class: 'sub', style: 'margin:0 0 6px' }, hint), listTable([t('dns.thSource'), t('dns.thAnswer'), ['TTL'], [t('dns.thTime')], t('dns.thState')], rows));
+  return section(title, el('p', { class: 'sub', style: 'margin:0 0 6px' }, hint), listTable([t('dns.thSource'), t('dns.thAnswer'), [term('TTL')], [t('dns.thTime')], t('dns.thState')], rows));
 }
 
 // 世界地図（国境の線画。public/world-110m.json、Natural Earth 由来）に、地域別の結果を印で置く
@@ -1190,7 +1201,7 @@ function ipSections(d, { brief = false } = {}) {
           kvTable([
             [t('lk.netName'), rdap.name],
             [t('lk.range'), rdap.start && rdap.end ? `${rdap.start} – ${rdap.end}` : null],
-            ['CIDR', lines(rdap.cidr)],
+            [term('CIDR'), lines(rdap.cidr)],
             [t('lk.kind'), rdap.type],
             [t('lk.handle'), rdap.handle],
             [t('lk.parent'), rdap.parent],
@@ -1208,7 +1219,7 @@ function ipSections(d, { brief = false } = {}) {
     );
   } else if (d.whois) {
     // RDAPで取れず、従来のWHOISで取れたときは、その生のテキストを出す
-    out.push(...section(`WHOIS${t('paren', d.whois.server)}`, el('div', { class: 'card' }, el('pre', { class: 'raw' }, d.whois.text))));
+    out.push(...section(`${term('WHOIS')}${t('paren', d.whois.server)}`, el('div', { class: 'card' }, el('pre', { class: 'raw' }, d.whois.text))));
   } else if (!d.errors.rdap) out.push(note('warn', t('lk.noIpReg')));
   return out;
 }
@@ -1243,7 +1254,7 @@ function renderDomain(d, hero, body) {
   }
   hero.replaceChildren(
     stat(t('dm.domain'), d.registered || d.query, d.registered && d.registered !== d.query ? t('dm.registeredFor', d.query) : null, true),
-    ...(r ? [stat(t('dm.registrar'), r.registrar?.name, r.registrar?.ianaId ? `IANA ID ${r.registrar.ianaId}` : null), stat(t('lk.registered'), fmtDate(r.events.registration)), stat(t('dm.expires'), fmtDate(expires), remaining)] : []),
+    ...(r ? [stat(t('dm.registrar'), r.registrar?.name, r.registrar?.ianaId ? `${term('IANA ID')} ${r.registrar.ianaId}` : null), stat(t('lk.registered'), fmtDate(r.events.registration)), stat(t('dm.expires'), fmtDate(expires), remaining)] : []),
   );
 
   const records = d.dns.flatMap((g) => g.answers || []);
@@ -1266,7 +1277,7 @@ function renderDomain(d, hero, body) {
                 [t('dm.registrar'), r.registrar?.name],
                 [t('dm.status'), lines(r.status)],
                 [t('dm.nameservers'), lines(r.nameservers)],
-                ['DNSSEC', r.dnssec === null ? null : r.dnssec ? t('dm.signed') : t('dm.unsigned')],
+                [term('DNSSEC'), r.dnssec === null ? null : r.dnssec ? t('dm.signed') : t('dm.unsigned')],
                 [t('lk.registered'), fmtDate(r.events.registration)],
                 [t('dm.expires'), fmtDate(expires)],
                 [t('lk.updated'), fmtDate(r.events['last changed'])],
@@ -1276,13 +1287,13 @@ function renderDomain(d, hero, body) {
             )
           : []),
         ...(r ? section(t('lk.secContacts'), entitiesTable(r.entities), el('p', { class: 'sub', style: 'margin:6px 2px 0' }, t('dm.contactNote'))) : []),
-        ...(d.whois ? section(`WHOIS${t('paren', d.whois.server)}`, el('div', { class: 'card' }, el('pre', { class: 'raw' }, d.whois.text))) : []),
+        ...(d.whois ? section(`${term('WHOIS')}${t('paren', d.whois.server)}`, el('div', { class: 'card' }, el('pre', { class: 'raw' }, d.whois.text))) : []),
       ],
       section(
         t('dm.secDns', d.query),
         records.length
           ? listTable(
-              [t('dm.thKind'), t('dm.thValue'), ['TTL']],
+              [t('dm.thKind'), t('dm.thValue'), [term('TTL')]],
               records.map((a) => el('tr', {}, el('td', {}, badge('info', a.type)), el('td', { class: 'ans' }, value(a)), el('td', { class: 'num' }, t('dns.ttl', a.ttl)))),
             )
           : el('p', { class: 'muted' }, nx ? t('dm.nxdomain') : t('dm.noRecords')),
@@ -1301,10 +1312,10 @@ function renderMail(d, hero, body) {
   const overall = spfOk && dmarcOk ? ['ok', 'mail.verdictGood'] : !spf.records.length && !dmarc.record ? ['bad', 'mail.verdictNone'] : ['warn', 'mail.verdictPartial'];
   const mark = (ok, text) => badge(ok ? 'ok' : 'warn', text);
   hero.replaceChildren(
-    stat('MX', d.nullMx ? '—' : d.mx.length ? String(d.mx.length) : mark(false, t('mail.none'))),
-    stat('SPF', spf.records.length ? mark(spfOk, spf.all ? `${spf.all}all` : spf.redirect ? 'redirect' : '—') : mark(false, t('mail.none'))),
-    stat('DKIM', d.dkim.length ? mark(true, String(d.dkim.length)) : '—'),
-    stat('DMARC', dmarc.record ? mark(dmarcOk, `p=${dmarc.policy || '?'}`) : mark(false, t('mail.none'))),
+    stat(term('MX'), d.nullMx ? '—' : d.mx.length ? String(d.mx.length) : mark(false, t('mail.none'))),
+    stat(term('SPF'), spf.records.length ? mark(spfOk, spf.all ? `${spf.all}all` : spf.redirect ? 'redirect' : '—') : mark(false, t('mail.none'))),
+    stat(term('DKIM'), d.dkim.length ? mark(true, String(d.dkim.length)) : '—'),
+    stat(term('DMARC'), dmarc.record ? mark(dmarcOk, `p=${dmarc.policy || '?'}`) : mark(false, t('mail.none'))),
   );
 
   const spfNotes = [];
@@ -1325,7 +1336,7 @@ function renderMail(d, hero, body) {
     cols(
       [
         ...section(
-          'MX',
+          term('MX'),
           d.nullMx
             ? note('info', t('mail.nullMx'))
             : d.mx.length
@@ -1333,20 +1344,20 @@ function renderMail(d, hero, body) {
               : note('warn', t('mail.noMx')),
         ),
         ...section(
-          'DKIM',
+          term('DKIM'),
           d.dkim.length ? [el('p', { class: 'sub', style: 'margin:0 0 6px' }, t('mail.dkimFound', d.dkim.length, d.dkimTried)), listTable([t('mail.selector'), t('mail.record')], d.dkim.map((k) => el('tr', {}, el('td', { class: 'mono' }, k.selector), el('td', { class: 'ans' }, k.record))))] : note('info', t('mail.dkimNone')),
         ),
       ],
       [
-        ...section('SPF', spf.records.length ? kvTable(spf.records.map((r) => [t('mail.record'), r])) : null, spfNotes),
+        ...section(term('SPF'), spf.records.length ? kvTable(spf.records.map((r) => [t('mail.record'), r])) : null, spfNotes),
         ...section(
-          'DMARC',
+          term('DMARC'),
           dmarc.record ? kvTable([[t('mail.record'), dmarc.record], [t('mail.reports'), dmarc.rua]]) : null,
           dmarc.record ? note(dmarcOk ? 'ok' : 'warn', I18N.en[`mail.dmarcP.${dmarc.policy}`] ? t(`mail.dmarcP.${dmarc.policy}`) : t('mail.dmarcP.none')) : note('bad', t('mail.dmarcNone')),
         ),
       ],
     ),
-    ...section(t('mail.secExtras'), kvTable([['MTA-STS', d.mtaSts || t('mail.none')], ['TLS-RPT', d.tlsRpt || t('mail.none')], ['BIMI', d.bimi || t('mail.none')]])),
+    ...section(t('mail.secExtras'), kvTable([[term('MTA-STS'), d.mtaSts || t('mail.none')], [term('TLS-RPT'), d.tlsRpt || t('mail.none')], [term('BIMI'), d.bimi || t('mail.none')]])),
   );
 }
 
@@ -1412,7 +1423,7 @@ function renderHttp(d, hero, body) {
     stat(t('http.status'), statusBadge(last)),
     stat(t('http.redirects'), String(d.hops.filter((h) => h.status >= 300 && h.status < 400 && h.location).length)),
     stat(t('http.total'), `${d.hops.reduce((sum, h) => sum + (h.ms || 0), 0)} ms`),
-    stat(t('http.grade'), last.headers ? el('span', { class: `grade g-${httpGrade(last, header).letter.toLowerCase()}` }, httpGrade(last, header).letter) : null),
+    stat(t('http.grade'), last.headers ? el('span', { class: `grade g-${httpGrade(last, header).letter.toLowerCase()}` }, term(`grade ${httpGrade(last, header).letter}`).replace(/^grade /, '')) : null),
   );
   fill(
     body,
@@ -1421,7 +1432,7 @@ function renderHttp(d, hero, body) {
     ...section(
       t('http.secChain'),
       listTable(
-        [t('http.thStep'), t('http.thStatus'), 'URL', [t('dns.thTime')]],
+        [t('http.thStep'), t('http.thStatus'), term('URL'), [t('dns.thTime')]],
         d.hops.map((h, i) => el('tr', {}, el('td', {}, i + 1), el('td', {}, statusBadge(h)), el('td', { class: 'url' }, h.url), el('td', { class: 'num' }, `${h.ms} ms`))),
       ),
       el('p', { class: 'sub', style: 'margin:6px 2px 0' }, t('http.note')),
@@ -1472,7 +1483,7 @@ function securitySection(d, last, header) {
   if (d.securityTxt) rows.push(el('tr', {}, el('td', { class: 'mono' }, 'security.txt'), el('td', {}, state(d.securityTxt.found, t('http.found'), t('http.notFound')))));
   return section(
     t('http.secSecurity'),
-    el('p', { style: 'margin:0 0 6px' }, el('span', { class: `grade g-${grade.letter.toLowerCase()}` }, grade.letter), ` ${grade.score} / 100`),
+    el('p', { style: 'margin:0 0 6px' }, el('span', { class: `grade g-${grade.letter.toLowerCase()}` }, term(`grade ${grade.letter}`).replace(/^grade /, '')), ` ${grade.score} / 100`),
     listTable([t('http.thHeader'), t('dns.thState')], rows),
     el('p', { class: 'sub', style: 'margin:6px 2px 0' }, t('http.gradeNote')),
   );
@@ -1644,7 +1655,7 @@ async function macLookup(input) {
   const table = await ouiPromise;
   // 先頭1バイトの下から2ビット目が1なら、メーカー割り当てではなく端末が自分で作ったアドレス
   const local = (parseInt(hex.slice(0, 2), 16) & 2) !== 0;
-  return [['OUI', hex.slice(0, 6).replace(/(..)(?=.)/g, '$1:')], [t('mac.vendor'), table[hex.slice(0, 6)] || t('mac.unknown')], [t('mac.kind'), local ? t('mac.random') : t('mac.global')]];
+  return [[term('OUI'), hex.slice(0, 6).replace(/(..)(?=.)/g, '$1:')], [t('mac.vendor'), table[hex.slice(0, 6)] || t('mac.unknown')], [t('mac.kind'), local ? t('mac.random') : t('mac.global')]];
 }
 
 async function timingRun(url) {
@@ -2049,6 +2060,19 @@ const THEMES = {
     bestViewed: 'Оптимизировано под Internet Explorer 6 и Windows XP SP2 (пиратскую) :: Все файлы проверены антивирусом (файлов нет)',
     copyright: '© 2026 NetCheck WAREZ TEAM. Все права взломаны.',
   },
+  // ソ連風（80年代末の計算センター）：連続用紙に打ち出したドットプリンタの印字と、琥珀色の端末画面
+  su2: {
+    marquee: '*** ВЦ «СЕТЕВАЯ ДИАГНОСТИКА» *** СЕАНС СВЯЗИ УСТАНОВЛЕН *** ДОСТУП К СЕТИ — ПО ЗАЯВКЕ (шутка) *** НЕ ВЫКЛЮЧАЙТЕ ЭВМ *** РАСПЕЧАТКИ ВЫДАЮТСЯ В ОКНЕ № 3 ***',
+    tagline: 'ВЫЧИСЛИТЕЛЬНЫЙ ЦЕНТР СЕТЕВОЙ ДИАГНОСТИКИ',
+    peekLabel: 'СООБЩЕНИЕ ЭВМ:',
+    peek: (ip, detail) => `АБОНЕНТ ${ip}${detail ? ` (${detail})` : ''} ОПОЗНАН. ДАННЫЕ ВЫВЕДЕНЫ НА ПЕЧАТЬ.`,
+    counterPre: 'СЕАНС №',
+    counterPost: 'ЗАРЕГИСТРИРОВАН',
+    kiriban: '*** ЮБИЛЕЙНЫЙ СЕАНС. ПРЕМИЯ НЕ ПРЕДУСМОТРЕНА ***',
+    linkFree: 'ОБМЕН ССЫЛКАМИ — ПО ЭЛЕКТРОННОЙ ПОЧТЕ (шутка)',
+    bestViewed: 'РЕКОМЕНДУЕТСЯ ДИСПЛЕЙ 80×25 СИМВОЛОВ (шутка)',
+    copyright: '© 1989–2026 ВЦ NETCHECK. ВСЕ ПРАВА ЗАЩИЩЕНЫ.',
+  },
   // 現代の怪しいサイト風：偽の「利用者の声」が流れ、当選バナーや丸い広告ボタンが浮く（どれも冗談と明記）
   cn: {
     marquee: '📢 用户 138****5521 刚刚查询了自己的IP　·　用户 186****0937 刚刚完成了指纹检测　·　用户 159****7742 领取了新人红包（并没有红包）　·　已有 9,999,999+ 用户信赖本站（数字是编的）',
@@ -2101,16 +2125,16 @@ const THEMES = {
   },
   // 大日本帝国風：戦前の官報・新聞のような、旧字体とカタカナ交じりの文語調（軍事的な標語や旗・紋章は使わない）
   ijp: {
-    marquee: '◎謹告◎　本サイトハ貴殿ノ電網番地・閲覽器・畫面寸法・活字ニ至ル迄　悉ク拜見致シ候　◎　御用ノ節ハ「調ベル」ヲ押サレタシ　◎　萬一不具合有之候ハバ　何卒御容赦被下度候　◎',
+    marquee: '◎謹告◎　當所ハ貴殿ノ電網番地・閲覽器・畫面寸法・活字ニ至ル迄　悉ク拜見致シ候　◎　御用ノ節ハ「調ベル」ヲ押サレタシ　◎　萬一不具合有之候ハバ　何卒御容赦被下度候　◎',
     tagline: '帝國電網接續診斷所', // CSS で右から左へ表示する（戦前の右横書き）
     peekLabel: '【告】',
     peek: (ip, detail) => `貴殿ノ電網番地 ${ip}${detail ? `（${detail}）` : ''} ハ　當所ヨリ明白ニ見エ居リ候。`,
     counterPre: '貴殿ハ',
     counterPost: '番目ノ御來訪者ナリ',
     kiriban: '◎ 目出度キ番號ナリ　謹ンデ御祝ヒ申上候 ◎',
-    linkFree: '相互連絡（リンク）御自由ニ',
+    linkFree: '相互聯絡御自由ニ',
     bestViewed: '推奨環境　八百×六百以上ノ畫面　（戯言ナリ）',
-    copyright: '版權所有　昭和百一年（西暦二〇二六年）　NetCheck',
+    copyright: '版權所有　昭和百一年（西暦二〇二六年）　電網檢査所',
   },
   // ソ連風：1920年代の構成主義ポスターのような、斜めの帯と大きな見出し（国章や鎌と槌は使わない）
   su: {
@@ -2391,7 +2415,16 @@ $('#title-row').addEventListener('click', (e) => {
     if (visible) $('#theme-select').focus();
   }
 });
-$('#theme-select').addEventListener('change', (e) => applyTheme(e.target.value));
+$('#theme-select').addEventListener('change', (e) => {
+  const next = e.target.value;
+  if (lang === 'ja' && (next === 'ijp') !== (dict === 'ja-ijp')) {
+    // 日本語表示で大日本帝国風に出入りするときは、文言の辞書が変わるので読み込み直す（検索条件はURLに残っている）
+    store.set('netcheck-theme', next);
+    location.reload();
+    return;
+  }
+  applyTheme(next);
+});
 if (store.get('netcheck-unlocked') === '1') showThemePicker(true);
 applyTheme(document.documentElement.dataset.theme);
 
