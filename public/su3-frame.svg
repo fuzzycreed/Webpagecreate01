@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 124">
+  <!-- ソ連風（スターリン時代）テーマの飾り：金の楕円の額と名札。中は透明で、下に su3-portrait.webp（肖像画）を重ねる -->
+  <defs>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff3b0"/>
+      <stop offset=".35" stop-color="#e2b93b"/>
+      <stop offset=".6" stop-color="#9c7414"/>
+      <stop offset="1" stop-color="#f1cf62"/>
+    </linearGradient>
+    <linearGradient id="gold2" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#fff3b0"/>
+      <stop offset=".5" stop-color="#b8860b"/>
+      <stop offset="1" stop-color="#f1cf62"/>
+    </linearGradient>
+  </defs>
+  <!-- 額縁（外の楕円から内の楕円をくり抜く） -->
+  <path fill="url(#gold)" fill-rule="evenodd" d="M2 62 a48 60 0 1 0 96 0 a48 60 0 1 0 -96 0 Z M9 62 a41 53 0 1 0 82 0 a41 53 0 1 0 -82 0 Z"/>
+  <ellipse cx="50" cy="62" rx="44.5" ry="56.5" fill="none" stroke="url(#gold2)" stroke-width="2.2"/>
+  <ellipse cx="50" cy="62" rx="44.5" ry="56.5" fill="none" stroke="#7a5a10" stroke-width=".5"/>
+  <!-- 絵の縁に落ちる影 -->
+  <ellipse cx="50" cy="62" rx="40.2" ry="52.2" fill="none" stroke="#000" stroke-opacity=".45" stroke-width="1.8"/>
+  <ellipse cx="50" cy="62" rx="41" ry="53" fill="none" stroke="#5a420c" stroke-width=".6"/>
+  <!-- 額の下の名札 -->
+  <rect x="33" y="111" width="34" height="10" rx="1" fill="url(#gold)" stroke="#7a5a10" stroke-width=".6"/>
+  <text x="50" y="118.6" text-anchor="middle" font-family="Times New Roman, serif" font-size="7" font-weight="700" fill="#5c0d10">И. В. С.</text>
+</svg>
