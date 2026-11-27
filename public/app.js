@@ -6,7 +6,7 @@ import { parseIpRdap, parseDomainRdap, rdapIpUrls, relatedRdapUrl, mergeDomainRd
 import { normalizeCerts, certsUrl, normalizeSubdomains, subdomainsUrl } from './certs.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
-const TABS = ['ip', 'privacy', 'browser', 'fp', 'webrtc', 'dns', 'lookup', 'mail', 'ports', 'http', 'certs', 'tools', 'bbs'];
+const TABS = ['ip', 'privacy', 'browser', 'fp', 'webrtc', 'dns', 'lookup', 'mail', 'ports', 'http', 'certs', 'tools', 'speed', 'bbs'];
 
 const store = {
   get(key) {
@@ -1793,6 +1793,152 @@ function initTools() {
   }
 }
 
+// ---------- 回線速度 ----------
+// Cloudflare の公開ライブラリ（public/vendor/speedtest/、MIT）を使う。データは訪問者のブラウザと
+// speed.cloudflare.com の間で直接やり取りされるので、このサイトのサーバーや無料枠は使わない。
+// ライブラリは既定で、測定結果を Cloudflare の統計（speed.cloudflare.com/__results）へ送る。ここでは送らない設定にしている。
+
+// 「標準」：speed.cloudflare.com の既定の手順から、100MB・250MBの下りと50MBの上りを除いたもの。
+// 1回の通信が1秒を超えた時点で、その向きのより大きな測定は飛ばされるので、遅い回線ほど使う量は少ない
+const SPEED_STANDARD = [
+  { type: 'latency', numPackets: 2 },
+  { type: 'download', bytes: 1e5, count: 1, bypassMinDuration: true },
+  { type: 'latency', numPackets: 20 },
+  { type: 'download', bytes: 1e5, count: 9 },
+  { type: 'download', bytes: 1e6, count: 8 },
+  { type: 'upload', bytes: 1e5, count: 8 },
+  { type: 'upload', bytes: 1e6, count: 6 },
+  { type: 'download', bytes: 1e7, count: 6 },
+  { type: 'upload', bytes: 1e7, count: 4 },
+  { type: 'download', bytes: 2.5e7, count: 2 },
+  { type: 'upload', bytes: 2.5e7, count: 2 },
+];
+
+let speedEngine = null;
+let speedLibPromise;
+const loadSpeedLib = () => (speedLibPromise ??= import('/vendor/speedtest/speedtest.js').then((m) => m.default));
+
+const fmtBps = (bps) => (!bps ? null : bps >= 1e9 ? `${(bps / 1e9).toFixed(2)} Gbps` : `${(bps / 1e6).toFixed(bps >= 1e8 ? 0 : 1)} Mbps`);
+const fmtMs = (ms) => (ms === undefined || ms === null ? null : `${ms.toFixed(ms < 10 ? 1 : 0)} ms`);
+const fmtBytes = (b) => (b >= 1e9 ? `${(b / 1e9).toFixed(2)} GB` : `${(b / 1e6).toFixed(b >= 1e8 ? 0 : 1)} MB`);
+
+function speedSizeNote() {
+  $('#speed-size').textContent = t($('#speed-mode').value === 'full' ? 'speed.sizeFull' : 'speed.sizeStandard');
+}
+
+function initSpeed() {
+  speedSizeNote();
+  $('#speed-mode').addEventListener('change', speedSizeNote);
+  $('#speed-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    runSpeed();
+  });
+  $('#speed-stop').addEventListener('click', () => {
+    if (!speedEngine) return;
+    speedEngine.pause();
+    renderSpeed(speedEngine.results, 'stopped');
+    speedDone();
+  });
+}
+
+function speedDone() {
+  speedEngine = null;
+  $('#speed-start').disabled = false;
+  $('#speed-start').textContent = t('speed.again');
+  $('#speed-mode').disabled = false;
+  $('#speed-stop').hidden = true;
+}
+
+async function runSpeed() {
+  if (speedEngine) return;
+  const body = $('#speed-body');
+  $('#speed-start').disabled = true;
+  $('#speed-mode').disabled = true;
+  $('#speed-hero').replaceChildren();
+  body.replaceChildren(loading(t('loading')));
+  let SpeedTest;
+  try {
+    SpeedTest = await loadSpeedLib();
+  } catch {
+    speedLibPromise = undefined;
+    body.replaceChildren(note('bad', t('speed.loadFailed')));
+    return speedDone();
+  }
+  const engine = new SpeedTest({
+    autoStart: false,
+    logAimApiUrl: null, // 結果を Cloudflare の統計へ送らない
+    logMeasurementApiUrl: null,
+    abortTestDuration: 120000, // 2分たったら、それまでの結果で終える
+    ...($('#speed-mode').value === 'full' ? {} : { measurements: SPEED_STANDARD }),
+  });
+  speedEngine = engine;
+  let errors = 0;
+  engine.onError = () => {
+    // 何度も失敗しているのに、遅延が1つも測れていなければ、speed.cloudflare.com に届いていない
+    // （届かないときもライブラリは「遅延 0ms」と返すので、値ではなく測れた回数で判断する）
+    if (++errors >= 6 && !(engine.results.getUnloadedLatencyPoints?.() || []).length) {
+      engine.pause();
+      body.replaceChildren(note('bad', t('speed.failed')));
+      speedDone();
+    }
+  };
+  engine.onResultsChange = () => speedEngine === engine && renderSpeed(engine.results, 'running');
+  engine.onFinish = (results) => {
+    if (speedEngine !== engine) return;
+    renderSpeed(results, 'done');
+    speedDone();
+  };
+  $('#speed-stop').hidden = false;
+  renderSpeed(engine.results, 'running');
+  engine.play();
+}
+
+function renderSpeed(results, state) {
+  const sum = results.getSummary();
+  $('#speed-hero').replaceChildren(
+    stat(t('speed.download'), fmtBps(sum.download), null, true),
+    stat(t('speed.upload'), fmtBps(sum.upload), null, true),
+    stat(t('speed.latency'), fmtMs(sum.latency), null, true),
+    stat(t('speed.jitter'), fmtMs(sum.jitter), null, true),
+  );
+  if (state === 'running') {
+    $('#speed-body').replaceChildren(el('p', { class: 'muted' }, t('speed.running')));
+    return;
+  }
+  const points = [...(results.getDownloadBandwidthPoints?.() || []), ...(results.getUploadBandwidthPoints?.() || [])];
+  const bytes = points.reduce((n, p) => n + (p.bytes || 0), 0);
+  let scores = {};
+  try {
+    if (state === 'done') scores = results.getScores() || {};
+  } catch {}
+  const scoreRows = ['streaming', 'gaming', 'rtc'].filter((k) => scores[k]).map((k) => {
+    const name = scores[k].classificationName;
+    const kind = name === 'great' || name === 'good' ? 'ok' : name === 'average' ? 'info' : 'warn';
+    return [t(`speed.${k}`), badge(kind, t(`speed.score.${name}`))];
+  });
+  const data = { ...sum, bytesTransferred: bytes, scores: Object.fromEntries(Object.entries(scores).map(([k, v]) => [k, v.classificationName])) };
+  const body = $('#speed-body');
+  fill(
+    body,
+    note(state === 'done' ? 'ok' : 'warn', t(state === 'done' ? 'speed.done' : 'speed.stopped')),
+    cols(
+      section(
+        t('speed.secDetails'),
+        kvTable([
+          [t('speed.downLoaded'), fmtMs(sum.downLoadedLatency)],
+          [t('speed.upLoaded'), fmtMs(sum.upLoadedLatency)],
+          [t('speed.duration'), sum.totalDurationMs ? `${(sum.totalDurationMs / 1000).toFixed(1)} s` : null],
+          [t('speed.data'), bytes ? fmtBytes(bytes) : null],
+          [t('speed.server'), 'speed.cloudflare.com'],
+        ]),
+      ),
+      scoreRows.length ? section(t('speed.secScores'), kvTable(scoreRows)) : [],
+    ),
+    el('p', { class: 'sub', style: 'margin:8px 2px 0' }, t('speed.note')),
+  );
+  copyBar(body, data);
+}
+
 // ---------- 掲示板（日本風テーマのみ。文言は日本語で固定） ----------
 
 const BBS_ERRORS = { bbs_empty: 'メッセージを入力してください。', bbs_no_links: 'URLは書き込めません。', bbs_bad: '書き込みを送れませんでした。', rate_limited: '書き込みが多すぎます。1分ほど待ってください。', no_board: '掲示板は準備中です。' };
@@ -2336,6 +2482,7 @@ const INIT = {
   },
   mail: () => initSearch('mail'),
   tools: initTools,
+  speed: initSpeed,
   bbs: initBbs,
   ports: initPorts,
   http: () => initSearch('http'),

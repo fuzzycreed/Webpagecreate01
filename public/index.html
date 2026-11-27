@@ -100,6 +100,7 @@
     </optgroup>
     <optgroup label="More" data-i18n-label="group.more">
       <option value="tools" data-i18n="tab.tools">Tools</option>
+      <option value="speed" data-i18n="tab.speed">Speed Test</option>
     </optgroup>
   </select>
 </header>
@@ -124,6 +125,7 @@
     <button role="tab" data-tab="http" data-i18n="tab.http">HTTP Headers</button>
     <span class="tab-head" role="presentation" data-i18n="group.more">More</span>
     <button role="tab" data-tab="tools" data-i18n="tab.tools">Tools</button>
+    <button role="tab" data-tab="speed" data-i18n="tab.speed">Speed Test</button>
     <button role="tab" data-tab="bbs" class="jp-only">掲示板</button>
   </nav>
   <div class="side-extra jp-only">
@@ -317,6 +319,26 @@
         <div id="qr-body"></div>
       </section>
     </div>
+  </section>
+
+  <!-- 回線速度：Cloudflare の公開ライブラリ（public/vendor/speedtest/）で、訪問者のブラウザと speed.cloudflare.com の間で直接測る。
+       開いただけでは測らず、ボタンを押したときだけ測る -->
+  <section data-panel="speed" hidden>
+    <h1 data-i18n="h.speed">Speed Test</h1>
+    <p class="lead" data-i18n="lead.speed"></p>
+    <form id="speed-form" class="speed-form">
+      <label><span data-i18n="speed.mode">Test size</span>
+        <select id="speed-mode">
+          <option value="standard" data-i18n="speed.standard">Standard</option>
+          <option value="full" data-i18n="speed.full">Full</option>
+        </select>
+      </label>
+      <button class="btn primary" type="submit" id="speed-start" data-i18n="speed.start">Start</button>
+      <button class="btn" type="button" id="speed-stop" data-i18n="speed.stop" hidden>Stop</button>
+    </form>
+    <p class="sub" id="speed-size" style="margin:-4px 2px 10px"></p>
+    <div id="speed-hero" class="hero"></div>
+    <div id="speed-body"></div>
   </section>
 
   <!-- 日本風テーマのときだけ使える掲示板。文言は日本語で固定 -->

@@ -138,3 +138,12 @@ RDAPの応答を整える処理は `public/rdap.js` にあり、サーバーと�
   ブラウザから新しい外部サービスに問い合わせる場合、https であれば追加の設定は要らない。
 - プライバシーの説明：`public/privacy.html`（英語と日本語）。外部サービスや保存するデータを増やしたら、ここも直すこと。
 - 存在しないパス：`public/404.html` を 404 として返す（`src/index.js` の `notFound`）。
+
+## 回線速度タブ
+
+Cloudflare の公開ライブラリ `@cloudflare/speedtest`（MIT、`public/vendor/speedtest/`、版は `VERSION`）を、必要になったときだけ読み込む。
+測定のデータは訪問者のブラウザと speed.cloudflare.com の間で直接やり取りされ、このサイトの Worker は通らない（無料枠を使わない）。
+「測定する」を押すまで何も通信しない。ライブラリは既定で測定結果を Cloudflare の統計（`/__results`）へ送るが、
+`logAimApiUrl: null` で止めている。「標準」は既定の手順から100MB以上の測定を除いたもの（`public/app.js` の `SPEED_STANDARD`）、
+「フル」は speed.cloudflare.com と同じ手順。パケットロスは測らない（TURNサーバーの認証情報が必要なため）。
+ライブラリを更新するときは `npm pack @cloudflare/speedtest` などで `dist/speedtest.js` と `LICENSE` を取り出して差し替える。
