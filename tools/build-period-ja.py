@@ -7,10 +7,16 @@ public/i18n.js の日本語（ja）の文言を、次の順で変換する。
   3. ひらがなをカタカナにし、小さい「ッ」「ャ」なども大きく書く（漢字カタカナ交じり文）
   4. 新字体を旧字体にする
 数や名前を埋め込む文言（関数）は、地の文だけを変換し、${...} の中身（IPアドレスなどのデータ）には触れない。
-最後に、タブ名や見出しなど目立つ文言を、手で書いた OVERRIDES で上書きする。
+最後に、タブ名や見出しなど短い文言（下の OVERRIDES）と、手で書き直した説明文（tools/period_ja_text.py）で上書きする。
+
+この辞書を使うときは、画面の文字を右から左へ表示する（public/app.js の periodDirection）。データや英数字まで
+逆さにならないよう、文言の中の英数字と ${...} の差し込みを、双方向テキストの分離記号（U+2066 … U+2069）で囲む。
 日本語の文言を直したら、このスクリプトを実行し直すこと:  python3 tools/build-period-ja.py
 """
-import re, json, pathlib
+import re, json, pathlib, sys
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+from period_ja_text import TEXT, JS  # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SRC = ROOT / 'public' / 'i18n.js'
@@ -82,6 +88,7 @@ KYUJITAI = dict(zip(_SHIN, _KYU))
 SMALL = str.maketrans('ァィゥェォッャュョヮヵヶ', 'アイウエオツヤユヨワカケ')
 
 def periodize(text):
+    text = text.replace('→', '←')  # 右から左へ読むので、矢印の向きも逆にする
     for k in sorted(TERMS, key=len, reverse=True):
         text = text.replace(k, TERMS[k])
     text = re.sub(r'AS(?!\d)', '自律網', text)  # 「AS13335」のような例はそのまま
@@ -92,44 +99,76 @@ def periodize(text):
     text = text.translate(SMALL)
     return ''.join(KYUJITAI.get(c, c) for c in text)
 
+# ---------- 英数字の分離 ----------
+LRI, PDI = '\\u2066', '\\u2069'  # 書き出すJSの中では、この6文字の書き方（エスケープ）で入れる
+
+def isolate(text):
+    """地の文の中の英数字（例：8.8.8.8、speed.cloudflare.com）を、左から右のまま表示されるよう囲む。"""
+    return re.sub(r'[!-~]+(?: [!-~]+)*', lambda m: LRI + m.group(0) + PDI, text)
+
 # ---------- 文言の値（JSのコード片）から、地の文だけを変換する ----------
-def convert_value(src):
+def convert_value(src, transform):
+    """文字列とテンプレートの地の文に transform を当てる。${...} は変数などをそのまま残し、
+    単純な差し込み（データ）は分離記号で囲む。差し込みの中にさらに文言がある場合は、その文言も変換する。"""
     out = []; i = 0; n = len(src)
-    def string(i, q):
-        j = i + 1; buf = ''
-        while j < n and src[j] != q:
-            if src[j] == '\\': buf += src[j:j + 2]; j += 2; continue
-            buf += src[j]; j += 1
-        out.append(q + periodize(buf) + q)
+
+    def skip_string(j, q):
+        j += 1
+        while src[j] != q:
+            j += 2 if src[j] == '\\' else 1
         return j + 1
-    def template(i):
-        out.append('`'); j = i + 1; buf = ''
-        while j < n:
-            c = src[j]
-            if c == '\\': buf += src[j:j + 2]; j += 2; continue
-            if c == '`': out.append(periodize(buf) + '`'); return j + 1
-            if c == '$' and src[j + 1:j + 2] == '{':
-                out.append(periodize(buf) + '${'); buf = ''; j = expr(j + 2); out.append('}'); continue
-            buf += c; j += 1
-        raise ValueError('unterminated template: ' + src)
-    def expr(j):  # ${...} の中：変数などはそのまま、中にある文字列だけ変換する
+
+    def skip_template(j):
+        j += 1
+        while src[j] != '`':
+            if src[j] == '\\': j += 2; continue
+            if src[j:j + 2] == '${': j = skip_expr(j + 2); continue
+            j += 1
+        return j + 1
+
+    def skip_expr(j):  # ${ の直後から、対応する } の次まで
         depth = 1
-        while j < n:
+        while True:
             c = src[j]
-            if c in "'\"": j = string(j, c); continue
-            if c == '`': j = template(j); continue
+            if c in "'\"": j = skip_string(j, c); continue
+            if c == '`': j = skip_template(j); continue
             if c == '{': depth += 1
             elif c == '}':
                 depth -= 1
                 if depth == 0: return j + 1
-            out.append(c); j += 1
-        raise ValueError('unterminated expression: ' + src)
+            j += 1
+
+    def string(j, q):
+        end = skip_string(j, q)
+        out.append(q + isolate(transform(src[j + 1:end - 1])) + q)
+        return end
+
+    def template(j):
+        out.append('`'); j += 1; buf = ''
+        while src[j] != '`':
+            c = src[j]
+            if c == '\\': buf += src[j:j + 2]; j += 2; continue
+            if src[j:j + 2] == '${':
+                out.append(isolate(transform(buf))); buf = ''
+                end = skip_expr(j + 2)
+                expr = src[j + 2:end - 1]
+                if any(q in expr for q in "'\"`"):
+                    out.append('${' + convert_value(expr, transform) + '}')  # 中にある文言も変換する
+                else:
+                    out.append(LRI + '${' + expr + '}' + PDI)  # データの差し込み
+                j = end; continue
+            buf += c; j += 1
+        out.append(isolate(transform(buf)) + '`')
+        return j + 1
+
     while i < n:
         c = src[i]
         if c in "'\"": i = string(i, c)
         elif c == '`': i = template(i)
         else: out.append(c); i += 1
     return ''.join(out)
+
+keep = lambda text: text  # 手で書いた文言は、変換せず分離記号だけ入れる
 
 # ---------- 5. 手で整える文言（変換結果より優先） ----------
 OVERRIDES = {
@@ -171,9 +210,12 @@ def main():
     entries = {}
     for line in s[a:b].split('\n'):
         m = re.match(r"\s+(?:'([^']+)'|([A-Za-z]+)):\s*(.*),$", line)
-        if m: entries[m.group(1) or m.group(2)] = convert_value(m.group(3))
+        if m: entries[m.group(1) or m.group(2)] = convert_value(m.group(3), periodize)
     for k, v in OVERRIDES.items():
-        entries[k] = json.dumps(v, ensure_ascii=False)
+        entries[k] = json.dumps(v, ensure_ascii=False) if k == 'locale' else convert_value(json.dumps(v, ensure_ascii=False), keep)
+    for k, v in TEXT.items():
+        if k not in entries: raise KeyError(f'{k} は日本語の辞書にない')
+        entries[k] = convert_value(v if isinstance(v, JS) else json.dumps(v, ensure_ascii=False), keep)
     lines = [f"  {json.dumps(k, ensure_ascii=False)}: {v}," for k, v in entries.items()]
     OUT.write_text(
         "// 自動生成ファイル。直接編集しないこと（tools/build-period-ja.py で作り直す）。\n"

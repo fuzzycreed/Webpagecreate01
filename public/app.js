@@ -32,6 +32,11 @@ if (!I18N[lang]) lang = 'en';
 
 // 文言の辞書。日本語で大日本帝国風テーマのときだけ、戦前の文体・旧字体・敵性語なしの辞書を使う
 const dict = lang === 'ja' && document.documentElement.dataset.theme === 'ijp' && I18N['ja-ijp'] ? 'ja-ijp' : lang;
+// その辞書のときは、画面の文字を戦前の横書きにならって右から左へ表示する（periodDirection を参照）
+const periodRtl = dict === 'ja-ijp';
+if (periodRtl) document.documentElement.classList.add('period-rtl');
+// 右から左へ表示するときに、英数字（データ）だけは左から右のまま読めるよう、双方向テキストの分離記号で囲む
+const isoAscii = (s) => (periodRtl && typeof s === 'string' ? s.replace(/[!-~]+(?: [!-~]+)*/g, (m) => `\u2066${m}\u2069`) : s);
 
 function t(key, ...args) {
   const v = I18N[dict][key] ?? I18N[lang][key] ?? I18N.en[key] ?? key;
@@ -40,7 +45,7 @@ function t(key, ...args) {
 // 画面に直接書いている英字の項目名（Canvas、TTL など）。辞書に term.○○ があれば置き換える
 const term = (label) => I18N[dict]?.[`term.${label}`] ?? label;
 // サーバーが返すエラーコード（bad_name など）を文言にする。知らないものはそのまま出す
-const errText = (code) => (I18N.en[`err.${code}`] ? t(`err.${code}`) : code);
+const errText = (code) => (I18N.en[`err.${code}`] ? t(`err.${code}`) : isoAscii(code));
 
 function applyStaticText() {
   document.documentElement.lang = lang;
@@ -221,12 +226,12 @@ function regionName(cc) {
 function fmtDate(value) {
   if (!value) return null;
   const d = new Date(value);
-  return Number.isNaN(d.getTime()) ? value : d.toLocaleDateString(t('locale'), { year: 'numeric', month: 'long', day: 'numeric' });
+  return isoAscii(Number.isNaN(d.getTime()) ? value : d.toLocaleDateString(t('locale'), { year: 'numeric', month: 'long', day: 'numeric' }));
 }
 
 function localTime(timeZone) {
   try {
-    return new Date().toLocaleString(t('locale'), { timeZone, dateStyle: 'medium', timeStyle: 'medium' });
+    return isoAscii(new Date().toLocaleString(t('locale'), { timeZone, dateStyle: 'medium', timeStyle: 'medium' }));
   } catch {
     return null;
   }
@@ -2128,7 +2133,7 @@ const THEMES = {
     marquee: '◎謹告◎　當所ハ貴殿ノ電網番地・閲覽器・畫面寸法・活字ニ至ル迄　悉ク拜見致シ候　◎　御用ノ節ハ「調ベル」ヲ押サレタシ　◎　萬一不具合有之候ハバ　何卒御容赦被下度候　◎',
     tagline: '帝國電網接續診斷所', // CSS で右から左へ表示する（戦前の右横書き）
     peekLabel: '【告】',
-    peek: (ip, detail) => `貴殿ノ電網番地 ${ip}${detail ? `（${detail}）` : ''} ハ　當所ヨリ明白ニ見エ居リ候。`,
+    peek: (ip, detail) => `貴殿ノ電網番地 \u2066${ip}\u2069${detail ? `（\u2066${detail}\u2069）` : ''} ハ　當所ヨリ明白ニ見エ居リ候。`, // 番地は左から右のまま（分離記号で囲む）
     counterPre: '貴殿ハ',
     counterPost: '番目ノ御來訪者ナリ',
     kiriban: '◎ 目出度キ番號ナリ　謹ンデ御祝ヒ申上候 ◎',
@@ -2338,6 +2343,7 @@ function renderCounter() {
   const jp = document.documentElement.dataset.theme === 'jp' && siteStats;
   const n = jp ? siteStats.total : localVisits;
   $('#counter').replaceChildren(...String(n).padStart(6, '0').split('').map((d) => el('span', {}, d)));
+  if (periodRtl) $('#counter').prepend('\u2066'), $('#counter').append('\u2069'); // 数字は左から右のまま
   // キリ番：100の倍数か、ゾロ目
   $('#kiriban').hidden = !(n % 100 === 0 || (n > 10 && /^(\d)\1+$/.test(String(n))));
   if (siteStats) {
@@ -2522,6 +2528,32 @@ $('#pw-copy').addEventListener('click', async () => {
   $('#pw-copy').textContent = t('pw.copied');
   setTimeout(() => ($('#pw-copy').textContent = t('pw.copy')), 1500);
 });
+
+// ---------- 右から左への表示（大日本帝国風 × 日本語のときだけ） ----------
+// 和文だけでできている要素（英数字は分離記号で囲まれたものだけ）に .rtl を付け、文字の並びを右から左にする。
+// データ（IPアドレス、ドメイン名など）を含む要素はそのまま左から右に表示する。画面が書き換わるたびにやり直す。
+const PERIOD_SKIP = 'input, textarea, select, pre, code, svg, .leaflet-container, .worldmap, .counter';
+const CJK = /[々぀-ヿ㐀-鿿豈-﫿]/;
+function periodDirection() {
+  for (const node of document.querySelectorAll('.page *')) {
+    if (node.closest(PERIOD_SKIP)) continue;
+    const text = node.textContent.replace(/⁦[^⁩]*⁩/g, '');
+    node.classList.toggle('rtl', CJK.test(text) && !/[A-Za-z0-9]/.test(text));
+  }
+}
+if (periodRtl) {
+  let pending = false;
+  const schedule = () => {
+    if (pending) return;
+    pending = true;
+    requestAnimationFrame(() => {
+      pending = false;
+      periodDirection();
+    });
+  };
+  new MutationObserver(schedule).observe(document.querySelector('.page'), { childList: true, subtree: true, characterData: true });
+  schedule();
+}
 
 // ---------- タブ切り替え ----------
 

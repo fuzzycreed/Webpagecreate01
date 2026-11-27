@@ -1661,3 +1661,15 @@ main.doc ul { padding-left: 1.4em; }
 .speed-form label { display: flex; align-items: center; gap: 6px; font-size: 13px; }
 .speed-bar { height: 8px; margin: 2px 0 10px; background: var(--row-a); border: 1px solid var(--line); border-radius: var(--pill); overflow: hidden; }
 .speed-bar span { display: block; height: 100%; width: 0; background: var(--btn-bg); transition: width .3s; }
+
+/* ---------- 大日本帝国風 × 日本語：戦前の横書きにならい、右から左へ表示する ----------
+   和文だけの要素（.rtl）は文字の並びを逆にする。画面全体も左右を入れ替え、目次を右に置く。
+   データ（IPアドレス、ドメイン名、入力欄など）は左から右のまま表示する。 */
+:root.period-rtl .rtl { direction: rtl; unicode-bidi: bidi-override; }
+:root.period-rtl .layout, :root.period-rtl .foot { direction: rtl; }
+:root.period-rtl input, :root.period-rtl textarea, :root.period-rtl select, :root.period-rtl pre,
+:root.period-rtl .leaflet-container, :root.period-rtl .worldmap, :root.period-rtl .counter,
+:root.period-rtl td:not(.rtl), :root.period-rtl .ans:not(.rtl), :root.period-rtl .mono:not(.rtl), :root.period-rtl .chip:not(.rtl),
+:root.period-rtl .badge:not(.rtl), :root.period-rtl a:not(.rtl), :root.period-rtl .stat .v:not(.rtl), :root.period-rtl .stat .s:not(.rtl) { direction: ltr; unicode-bidi: isolate; }
+:root.period-rtl td, :root.period-rtl th, :root.period-rtl .tabs button, :root.period-rtl .tab-head, :root.period-rtl .stat { text-align: right; }
+:root.period-rtl .lang-pick { right: auto; left: 8px; }
