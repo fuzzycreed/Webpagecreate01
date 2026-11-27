@@ -1166,7 +1166,9 @@
 
 /* ---------- ソ連風（スターリン時代・1930〜50年代）：社会主義リアリズムとスターリン様式
    深紅のビロードの幕（ひだと金の点）、象牙色の公文書の紙、金の二重枠、題字の後ろに放射状の光、金の玉縁の帯。
-   重いセリフ体の大文字。点滅はしない（荘重に）。国章・鎌と槌・肖像は使わない ---------- */
+   重いセリフ体の大文字。点滅はしない（荘重に）。
+   題字の左に金の額に入った口ひげとパイプの似顔絵（戯画。/su3-portrait.svg）、右下に赤鉛筆の決裁「Согласен. И. Ст.」。
+   国章・鎌と槌は使わない ---------- */
 :root[data-theme="su3"] {
   --font: "PT Serif", "Times New Roman", Georgia, "Noto Serif", serif;
   --mono: "PT Mono", "Courier New", Courier, monospace;
@@ -1261,9 +1263,12 @@
   --pin-bad-mark: #f7d774;
 }
 :root[data-theme="su3"] body { background-attachment: fixed; }
-:root[data-theme="su3"] .title-row { border-bottom: 3px solid #c9a227; }
+:root[data-theme="su3"] .title-row { border-bottom: 3px solid #c9a227; min-height: 150px; }
+:root[data-theme="su3"] .title-row::before { content: ""; position: absolute; left: 28px; top: 12px; width: 104px; height: 129px; background: url("/su3-portrait.svg") center / contain no-repeat; filter: drop-shadow(0 3px 4px rgba(0, 0, 0, .55)); pointer-events: none; }
+/* 赤鉛筆の決裁を書いた紙片。本人の決裁は色鉛筆の走り書きだった */
+:root[data-theme="su3"] .title-row::after { content: "Согласен.\A — И. Ст."; white-space: pre; position: absolute; right: 34px; bottom: 16px; transform: rotate(-9deg); padding: 6px 14px 8px; font: italic 700 19px/1.15 "Segoe Script", "Brush Script MT", "URW Chancery L", "Z003", cursive; color: #c0261f; background: linear-gradient(#fbf4e2, #ecdfbd); box-shadow: 2px 4px 8px rgba(0, 0, 0, .5); letter-spacing: .5px; pointer-events: none; }
 :root[data-theme="su3"] .brand::before, :root[data-theme="su3"] .brand::after { content: "★"; font-size: .6em; vertical-align: .25em; margin: 0 .3em; letter-spacing: 0; }
-:root[data-theme="su3"] .tagline { font-weight: 700; letter-spacing: 6px; text-transform: uppercase; }
+:root[data-theme="su3"] .tagline { font-weight: 700; letter-spacing: 4px; text-transform: uppercase; padding-left: 150px; padding-right: 150px; }
 :root[data-theme="su3"] .peek .blink { animation: none; }
 :root[data-theme="su3"] h1 { text-transform: uppercase; letter-spacing: 2px; font-size: 23px; }
 :root[data-theme="su3"] h2 { text-transform: uppercase; letter-spacing: 1px; }
@@ -1274,7 +1279,10 @@
 :root[data-theme="su3"] .banner { font: 700 12px/27px "PT Serif", "Times New Roman", serif; font-style: normal; text-shadow: none; border: 1px solid #c9a227; letter-spacing: 1px; }
 @media (max-width: 640px) {
   :root[data-theme="su3"] .brand, :root[data-theme="su3"] .brand:visited { font-size: 32px; letter-spacing: 4px; }
-  :root[data-theme="su3"] .tagline { letter-spacing: 2px; font-size: 11px; }
+  :root[data-theme="su3"] .tagline { letter-spacing: 2px; font-size: 11px; padding-left: 0; padding-right: 0; }
+  :root[data-theme="su3"] .title-row { min-height: 0; padding-top: 34px; }
+  :root[data-theme="su3"] .title-row::before { left: 6px; top: 6px; width: 34px; height: 42px; }
+  :root[data-theme="su3"] .title-row::after { display: none; }
 }
 
 /* ---------- ソ連風（80年代末の計算センター）：連続用紙（緑の帯と送り穴）に打ち出した印字と、琥珀色の端末 ---------- */
